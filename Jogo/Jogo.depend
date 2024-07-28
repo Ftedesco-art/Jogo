@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1722200886 source:c:\users\home\desktop\projetos\raylib\jogo\main.c
+	"raylib.h"
+	<stdio.h>
+
