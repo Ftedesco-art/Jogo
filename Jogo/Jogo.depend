@@ -3,3 +3,15 @@
 	"raylib.h"
 	<stdio.h>
 
+1722205897 source:c:\users\home\desktop\projetos\raylib\mapadojogo\jogo\mapa.c
+	"mapa.h"
+	<stdio.h>
+
+1722203627 source:c:\users\home\desktop\projetos\raylib\mapadojogo\jogo\movimentos.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+
+1722205897 c:\users\home\desktop\projetos\raylib\mapadojogo\jogo\mapa.h
+	"raylib.h"
+

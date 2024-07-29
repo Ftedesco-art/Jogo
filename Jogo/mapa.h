@@ -1,0 +1,16 @@
+#ifndef MAPA_H
+#define MAPA_H
+
+#include "raylib.h"
+
+#define TILE_SIZE 30
+#define MAP_WIDTH 60
+#define MAP_HEIGHT 30
+
+extern char map[MAP_HEIGHT][MAP_WIDTH + 1]; // +1 para o caractere nulo
+
+void LoadMap(const char *filename);
+void DrawMap(void);
+
+#endif // MAPA_H
+
