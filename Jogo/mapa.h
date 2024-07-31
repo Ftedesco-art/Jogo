@@ -3,7 +3,7 @@
 
 #include "raylib.h"
 
-#define TILE_SIZE 30
+#define LADO 20
 #define MAP_WIDTH 60
 #define MAP_HEIGHT 30
 
@@ -13,4 +13,5 @@ void LoadMap(const char *filename);
 void DrawMap(void);
 
 #endif // MAPA_H
+
 
