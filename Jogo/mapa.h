@@ -12,6 +12,6 @@ extern char map[MAP_HEIGHT][MAP_WIDTH + 1]; // +1 para o caractere nulo
 void LoadMap(const char *filename);
 void DrawMap(void);
 
+
+
 #endif // MAPA_H
-
-

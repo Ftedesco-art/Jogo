@@ -1,3 +1,11 @@
+// Versão 1 30/07 22:10 NINO
+/*
+CHANGELOG
+-Sons
+-Coleta de recursos
+-Buracos
+-HUD
+*/
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,11 +13,14 @@
 #include "movimento.h"
 #include "mapa.h"
 
+
+
 #define LADO 20
 #define LARGURA 1200
 #define ALTURA 600
 #define NUM_INIMIGOS 7
 #define TEMPO_MENSAGEM 120 // 2 segundos (a 60 FPS)
+
 
 typedef struct inimigo {
     int x;
@@ -18,144 +29,124 @@ typedef struct inimigo {
     int dy;
 } TYPE_INIMIGO;
 
-int podeMover(int xElemento, int yElemento, int dx, int dy)
-{
-    if (map[yElemento + dy][xElemento + dx] == 'W')
-    {
+typedef struct recurso {
+    int x;
+    int y;
+} TYPE_RECURSO;
+
+int podeMover(int xElemento, int yElemento, int dx, int dy) {
+    if (map[yElemento + dy][xElemento + dx] == 'W') {
         return 0; // Não pode mover
     }
-    else
-    {
+    else {
         return 1; // Pode mover
     }
 }
 
-void move(int *x, int *y, int dx, int dy)
-{
+void move(int *x, int *y, int dx, int dy) {
     *x += dx;
     *y += dy;
 }
 
-int main(void)
-{
-    srand(time(NULL));
 
-    int yPersonagem = 2;
-    int xPersonagem = 11;
+
+
+int main(void) {
+
+    int recursos = 11;
     int i, j, contador = 0;
+    srand(time(NULL));
+    //Inicialização dos sons
+    InitAudioDevice();
+    Sound fxWav = LoadSound("Sons\\Buraco.ogg"); // Load WAV audio file
+     Sound fxWav2 = LoadSound("Sons\\Barricada.ogg"); // Load WAV audio file
 
-    TYPE_INIMIGO array_inimigos[NUM_INIMIGOS];
 
-    LoadMap("mapa.txt");
-
-    for (i = 0; i < MAP_WIDTH; i++) {
-        for (j = 0; j < MAP_HEIGHT; j++) {
-            if (map[j][i] == 'E') {
-                array_inimigos[contador].x = i;
-                array_inimigos[contador].y = j;
-                contador++;
-            }
-        }
-    }
+    int xPersonagem = 11;
+    int yPersonagem = 2;
 
     InitWindow(LARGURA, ALTURA, "Página principal");
+     Texture2D barricadatexture = LoadTexture("Texturas\\barricada1.png");
+
+
     SetTargetFPS(60);
+    TYPE_INIMIGO array_inimigos[NUM_INIMIGOS];
+    //Carrega o Mapa
+    LoadMap("mapa.txt");
 
-    int contadorMovimentos = 0;
 
-    int velocidadeNormal = 1;
-    int velocidadeAumentada = 5;
-    int tempoTrap = 0;
-    int trapAtivada = 0;
-
-    // Variáveis para a mensagem
-    int tempoMensagem = 0;
-    int mensagemAtivada = 0;
-
-    while (!WindowShouldClose())
-    {
-        if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && podeMover(xPersonagem, yPersonagem, 1, 0))
-        {
+    while (!WindowShouldClose()) {
+        // Movimentos do elemento
+        if (IsKeyPressed(KEY_RIGHT) && podeMover(xPersonagem, yPersonagem, 1, 0)) {
             move(&xPersonagem, &yPersonagem, 1, 0);
         }
 
-        if ((IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) && podeMover(xPersonagem, yPersonagem, -1, 0))
-        {
+        if (IsKeyPressed(KEY_LEFT) && podeMover(xPersonagem, yPersonagem, -1, 0)) {
             move(&xPersonagem, &yPersonagem, -1, 0);
         }
 
-        if ((IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) && podeMover(xPersonagem, yPersonagem, 0, -1))
-        {
+        if (IsKeyPressed(KEY_UP) && podeMover(xPersonagem, yPersonagem, 0, -1)) {
             move(&xPersonagem, &yPersonagem, 0, -1);
         }
 
-        if ((IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) && podeMover(xPersonagem, yPersonagem, 0, 1))
-        {
+        if (IsKeyPressed(KEY_DOWN) && podeMover(xPersonagem, yPersonagem, 0, 1)) {
             move(&xPersonagem, &yPersonagem, 0, 1);
+
         }
 
-        // Verifica a armadilha
-        if (map[yPersonagem][xPersonagem] == 'T') {
-            trapAtivada = 1; // Ativa a trap
-            tempoTrap = 0; // Reinicia o contador de tempo
-
-            // Ativa a mensagem
-            mensagemAtivada = 1;
-            tempoMensagem = 0; // Reinicia o contador da mensagem
+        // Verifica se o jogador encostou em um recurso (R)
+        if (map[yPersonagem][xPersonagem] == 'R') {
+            recursos++;
+            map[yPersonagem][xPersonagem] = '.'; // Remove o recurso do mapa
         }
 
-        if (trapAtivada) {
-            tempoTrap++;
-            if (tempoTrap >= 100) {
-                trapAtivada = 0; // Desativa a trap após 100 iterações
+        //Verifica se o jogador encostou em um buraco (H)
+         if (map[yPersonagem][xPersonagem] == 'H')
+            {
+
+                PlaySound(fxWav);
+                buraco(&xPersonagem, &yPersonagem);
+
             }
-        }
 
-        // Incrementa o contador de movimentos
-        contadorMovimentos++;
 
-        if (contadorMovimentos % (trapAtivada ? 10 / velocidadeAumentada : 10) == 0) {
-            for (i = 0; i < NUM_INIMIGOS; i++) {
-                array_inimigos[i].dx = rand() % 3 - 1;
-                array_inimigos[i].dy = rand() % 3 - 1;
 
-                if (podeMover(array_inimigos[i].x, array_inimigos[i].y, array_inimigos[i].dx, array_inimigos[i].dy)) {
-                    move(&array_inimigos[i].x, &array_inimigos[i].y, array_inimigos[i].dx, array_inimigos[i].dy);
-                }
-            }
-        }
 
-        // Atualiza a lógica da mensagem
-        if (mensagemAtivada) {
-            tempoMensagem++;
-            if (tempoMensagem >= TEMPO_MENSAGEM) {
-                mensagemAtivada = 0; // Desativa a mensagem após 3 segundos
-            }
-        }
+
 
         BeginDrawing();
+
         ClearBackground(RAYWHITE);
+        DrawMap();
+          //Barricadas
+        if(recursos>=2 && map[yPersonagem][xPersonagem] == '.' && IsKeyPressed('E'))
+        {
+            PlaySound(fxWav2);
+            map[yPersonagem][xPersonagem] = 'B';
 
-        DrawMap(); // Desenha o mapa
-        DrawRectangle(xPersonagem * LADO, yPersonagem * LADO, LADO, LADO, YELLOW); // Desenha o personagem
-
-        for (i = 0; i < NUM_INIMIGOS; i++) {
-            DrawRectangle(array_inimigos[i].x * LADO, array_inimigos[i].y * LADO, LADO, LADO, RED); // Desenha os inimigos
         }
 
+
+        DrawRectangle(xPersonagem * LADO, yPersonagem * LADO, LADO, LADO, RED);
+
+        // Desenha a HUD
         char positionText[50];
-        sprintf(positionText, "Pos: (%d, %d)", xPersonagem, yPersonagem);
-        DrawText(positionText, 5, 5, 20, BLACK); // Desenha o texto da posição do personagem
+        sprintf(positionText, "Pos: (%d, %d)\nRecursos: %d", xPersonagem, yPersonagem, recursos);
+        DrawText(positionText, 10, 10, 20, BLACK);
 
-        // Desenha a mensagem se ativada
-        if (mensagemAtivada) {
-            const char *mensagem1 = "Voce caiu na armadilha!";
-            int larguraMensagem1 = MeasureText(mensagem1, 40);
-            DrawText(mensagem1, (LARGURA - larguraMensagem1) / 2, ALTURA / 2 - 30, 40, RED);
-        }
         EndDrawing();
     }
 
+    UnloadSound(fxWav);
+    UnloadSound(fxWav2);     // Unload sound data
+    UnloadTexture(barricadatexture);
+
+
+
+
+    CloseAudioDevice();     // Close audio device
     CloseWindow();
+
+
     return 0;
 }

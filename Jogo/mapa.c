@@ -1,5 +1,6 @@
 #include "mapa.h"
 #include <stdio.h>
+#include "movimento.h"
 
 char map[MAP_HEIGHT][MAP_WIDTH + 1]; // +1 para o caractere nulo
 
@@ -30,6 +31,11 @@ void LoadMap(const char *filename)
 
 void DrawMap()
 {
+    SetTraceLogLevel(LOG_NONE);
+    Texture2D barricadatexture = LoadTexture("Texturas\\barricada1.png");
+    Texture2D paredetexture = LoadTexture("Texturas\\Parede.png");
+
+    int flag = 0, flag2 = 0;
     for (int y = 0; y < MAP_HEIGHT; y++)
     {
         for (int x = 0; x < MAP_WIDTH; x++)
@@ -38,35 +44,55 @@ void DrawMap()
             switch (map[y][x])
             {
             case 'W':
-                tileColor = GRAY; // Parede
+
+                    flag = 2;
+                    tileColor = GRAY;
+
+
                 break;
             case '.':
-                tileColor = LIGHTGRAY; // Espaço em branco
+                tileColor = LIGHTGRAY;
                 break;
             case 'S':
-                tileColor = BLUE; // Base
+                tileColor = BLUE;
                 break;
             case 'R':
-                tileColor = PINK; // Recurso
+                tileColor = PINK;
                 break;
             case 'H':
-                tileColor = GREEN; // Buraco
+                tileColor = BROWN;
                 break;
             case 'J':
-                tileColor = LIGHTGRAY; // Jogador*
+                tileColor = YELLOW;
+
                 break;
-            case 'E':
-                tileColor = LIGHTGRAY; // Inimigo*
-                break;
-            case 'T':
-                tileColor = LIGHTGRAY; // Trap
+            case 'B':
+                flag = 1;
+
+
                 break;
             default:
                 tileColor = RAYWHITE;
                 break;
             }
-            DrawRectangle(x * LADO, y * LADO, LADO, LADO, tileColor);
+            if(flag==0)
+            {
+                DrawRectangle(x * LADO, y * LADO, LADO, LADO, tileColor);
+            }
+            else if(flag==2)
+            {
+                DrawTexture(paredetexture, x * LADO, y * LADO, WHITE);
+
+            }
+            else
+            {
+
+                DrawTexture(barricadatexture, x * LADO, y * LADO, WHITE);
+            }
+
+
+            flag = 0;
+
         }
     }
 }
-

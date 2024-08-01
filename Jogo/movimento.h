@@ -5,5 +5,10 @@ int podeMover(int x, int y, int dx, int dy);
 void move(int *x, int *y, int dx, int dy);
 int main(void);
 
-#endif // MOVIMENTO_H
+extern xPersonagem;
+extern yPersonagem;
+extern Texture2D barricadatexture;
+extern Texture2D paredetexture;
 
+
+#endif

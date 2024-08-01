@@ -1,0 +1,40 @@
+# depslib dependency file v1.0
+1722532649 source:c:\users\home\desktop\projetos\raylib\certo\mapa.c
+	"mapa.h"
+	<stdio.h>
+	"movimento.h"
+
+1722454153 c:\users\home\desktop\projetos\raylib\certo\mapa.h
+	"raylib.h"
+
+1722453746 source:c:\users\home\desktop\projetos\raylib\certo\movimento.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	"movimento.h"
+	"mapa.h"
+
+1722453729 c:\users\home\desktop\projetos\raylib\certo\movimento.h
+
+1722383514 source:c:\users\home\desktop\projetos\raylib\certo\fase1.c
+
+1722380449 c:\users\home\desktop\projetos\raylib\certo\fase1.c
+	<stdio.h>
+
+1722376117 c:\users\home\desktop\projetos\raylib\certo\mapa.c
+	"mapa.h"
+	<stdio.h>
+
+1722444495 c:\users\home\desktop\projetos\raylib\certo\load.h
+	"raylib.h"
+
+1722445229 c:\users\home\desktop\projetos\raylib\certo\movimento.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	"movimento.h"
+	"mapa.h"
+	"Load.h"
+
