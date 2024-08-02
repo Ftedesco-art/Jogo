@@ -32,10 +32,9 @@ void LoadMap(const char *filename)
 void DrawMap()
 {
     SetTraceLogLevel(LOG_NONE);
-    Texture2D barricadatexture = LoadTexture("Texturas\\barricada1.png");
-    Texture2D paredetexture = LoadTexture("Texturas\\Parede.png");
 
-    int flag = 0, flag2 = 0;
+    int flag = 0;
+
     for (int y = 0; y < MAP_HEIGHT; y++)
     {
         for (int x = 0; x < MAP_WIDTH; x++)
@@ -44,55 +43,76 @@ void DrawMap()
             switch (map[y][x])
             {
             case 'W':
-
-                    flag = 2;
-                    tileColor = GRAY;
-
-
+                flag = 2;
+                tileColor = GRAY;
                 break;
             case '.':
-                tileColor = LIGHTGRAY;
+                tileColor = (Color)
+                {
+                    47, 21, 54, 255
+                }; // Espaço em branco
                 break;
             case 'S':
-                tileColor = BLUE;
+                tileColor = YELLOW; // Base
                 break;
             case 'R':
-                tileColor = PINK;
+                tileColor = (Color)
+                {
+                    33, 179, 181, 255
+                }; // Recurso
                 break;
             case 'H':
-                tileColor = BROWN;
+                tileColor = GREEN; // Buraco
                 break;
             case 'J':
-                tileColor = YELLOW;
-
+                tileColor = (Color)
+                {
+                    47, 21, 54, 255
+                }; // Jogador*
+                break;
+            case 'E':
+                tileColor = (Color)
+                {
+                    47, 21, 54, 255
+                }; // Inimigo*
+                break;
+            case 'T':
+                tileColor = (Color)
+                {
+                    47, 21, 54, 255
+                }; // Trap*
                 break;
             case 'B':
                 flag = 1;
-
-
                 break;
             default:
-                tileColor = RAYWHITE;
+                tileColor = (Color)
+                {
+                    47, 21, 54, 255
+                };
                 break;
             }
-            if(flag==0)
+
+            ///////////////////// DESENHO DO MAPA /////////////////////
+
+            if(flag == 0)
             {
                 DrawRectangle(x * LADO, y * LADO, LADO, LADO, tileColor);
             }
-            else if(flag==2)
+
+            else if(flag == 2)
             {
                 DrawTexture(paredetexture, x * LADO, y * LADO, WHITE);
 
             }
+
             else
             {
-
                 DrawTexture(barricadatexture, x * LADO, y * LADO, WHITE);
             }
 
-
             flag = 0;
-
         }
     }
 }
+
