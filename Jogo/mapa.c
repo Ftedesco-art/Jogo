@@ -1,8 +1,9 @@
 #include "mapa.h"
 #include <stdio.h>
-#include "movimento.h"
+#include "main.h"
+#include "load.h"
 
-char map[MAP_HEIGHT][MAP_WIDTH + 1]; // +1 para o caractere nulo
+char map[ALTURA_GRID][LARGURA_GRID + 1]; // +1 para o caractere nulo
 
 void LoadMap(const char *filename)
 {
@@ -12,18 +13,18 @@ void LoadMap(const char *filename)
         perror("Error opening file");
         return;
     }
-    for (int i = 0; i < MAP_HEIGHT; i++)
+    for (int i = 0; i < ALTURA_GRID; i++)
     {
-        if (fgets(map[i], MAP_WIDTH + 2, file) == NULL)   // +2 para incluir o caractere de nova linha
+        if (fgets(map[i], LARGURA_GRID + 2, file) == NULL)   // +2 para incluir o caractere de nova linha
         {
             perror("Error reading line");
             fclose(file);
             return;
         }
         // Remove o caractere de nova linha, se presente
-        if (map[i][MAP_WIDTH] == '\n')
+        if (map[i][LARGURA_GRID] == '\n')
         {
-            map[i][MAP_WIDTH] = '\0';
+            map[i][LARGURA_GRID] = '\0';
         }
     }
     fclose(file);
@@ -31,88 +32,74 @@ void LoadMap(const char *filename)
 
 void DrawMap()
 {
-    SetTraceLogLevel(LOG_NONE);
-
-    int flag = 0;
-
-    for (int y = 0; y < MAP_HEIGHT; y++)
+    for (int y = 0; y < ALTURA_GRID + 6; y++)   // Adiciona 6 linhas em branco
     {
-        for (int x = 0; x < MAP_WIDTH; x++)
+        for (int x = 0; x < LARGURA_GRID; x++)
         {
-            Color tileColor;
-            switch (map[y][x])
+            Color tileColor = RAYWHITE;
+            Texture2D texture = {0}; // Inicializa como uma textura vazia
+
+            if (y < 6)
             {
-            case 'W':
-                flag = 2;
-                tileColor = GRAY;
-                break;
-            case '.':
-                tileColor = (Color)
-                {
-                    47, 21, 54, 255
-                }; // Espaço em branco
-                break;
-            case 'S':
-                tileColor = YELLOW; // Base
-                break;
-            case 'R':
-                tileColor = (Color)
-                {
-                    33, 179, 181, 255
-                }; // Recurso
-                break;
-            case 'H':
-                tileColor = GREEN; // Buraco
-                break;
-            case 'J':
-                tileColor = (Color)
-                {
-                    47, 21, 54, 255
-                }; // Jogador*
-                break;
-            case 'E':
-                tileColor = (Color)
-                {
-                    47, 21, 54, 255
-                }; // Inimigo*
-                break;
-            case 'T':
-                tileColor = (Color)
-                {
-                    47, 21, 54, 255
-                }; // Trap*
-                break;
-            case 'B':
-                flag = 1;
-                break;
-            default:
-                tileColor = (Color)
-                {
-                    47, 21, 54, 255
-                };
-                break;
+                tileColor = LIGHTGRAY;
             }
-
-            ///////////////////// DESENHO DO MAPA /////////////////////
-
-            if(flag == 0)
-            {
-                DrawRectangle(x * LADO, y * LADO, LADO, LADO, tileColor);
-            }
-
-            else if(flag == 2)
-            {
-                DrawTexture(paredetexture, x * LADO, y * LADO, WHITE);
-
-            }
-
             else
             {
-                DrawTexture(barricadatexture, x * LADO, y * LADO, WHITE);
+                char tile = map[y - 6][x];
+                switch (tile)
+                {
+                case 'W':
+                    texture = paredetexture;
+                    break;
+                case '.':
+                    texture = chaotexture;
+                    break;
+                case 'S':
+                    texture = basetexture;
+                    break;
+                case 'R':
+                    texture = recursotexture;
+                    break;
+                case 'H':
+                    texture = buracotexture;
+                    break;
+                case 'J':
+                    texture = spawntexture;
+                    break;
+                case 'B':
+                    texture = barricadatexture;
+                    break;
+                case 'K':
+                    texture = spawninimigotexture;
+                    break;
+                case 'M':
+                    texture = inimigotexture;
+                    break;
+                case '1':
+                    texture = minatexture;
+                    break;
+                case '2':
+                    texture = arqueirotexture;
+                    break;
+                case 'A':
+                    texture = bombatexture;
+                    break;
+                default:
+                    tileColor = GRAY;
+                    break;
+                }
             }
 
-            flag = 0;
+            if (texture.id > 0)
+            {
+                // Se a textura foi corretamente carregada (id > 0), desenhe-a
+                DrawTexture(texture, x * LADO, y * LADO, WHITE);
+            }
+            else
+            {
+                // Caso contrário, desenhe um retângulo com a cor de fundo
+                DrawRectangle(x * LADO, y * LADO, LADO, LADO, tileColor);
+            }
         }
     }
 }
-

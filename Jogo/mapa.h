@@ -4,14 +4,15 @@
 #include "raylib.h"
 
 #define LADO 20
-#define MAP_WIDTH 60
-#define MAP_HEIGHT 30
+#define LARGURA 1200
+#define ALTURA 720
+#define LARGURA_GRID 60
+#define ALTURA_GRID 30
 
-extern char map[MAP_HEIGHT][MAP_WIDTH + 1]; // +1 para o caractere nulo
-
+extern char map[ALTURA_GRID][LARGURA_GRID + 1]; // +1 para o caractere nulo
 void LoadMap(const char *filename);
-void DrawMap(void);
-
-
+void DrawMap();
 
 #endif // MAPA_H
+
+
