@@ -4,386 +4,305 @@
 #include <time.h>
 #include "main.h"
 #include "mapa.h"
+#include "load.h"
+#include "hud.h"
+#include "inimigo.h"
+#include "eventos.h"
 
-#define LADO 20
-#define LARGURA 1200
-#define ALTURA 600
-#define TEMPO_MENSAGEM 120 // 2 segundos (a 60 FPS)
-#define MAX_INIMIGOS 10 // Número máximo de inimigos
+#define MAX_INIMIGOS 7
+#define MAP_OFFSET 6  // Número de linhas em branco no topo
+#define MAX_BARRICADAS 100 // Número máximo de barricadas
+#define MAX_MINAS 100 // Número máximo de minas
+#define MAX_ARQUEIROS 100 // Número máximo de arqueiros
+#define MAX_FLECHAS 100 // Número máximo de flechas
 
-typedef struct
-{
-    int x;
-    int y;
-} POSN;
+int recursos = 11;
 
-typedef struct
-{
-    POSN coord;
-    int vidas;
-    int recursos;
-} PLAYER;
-
-typedef struct
-{
-    int movementStyle;
-    int velocity;
-    char color[20];
-} TYPE_INIMIGO;
-
-typedef struct
-{
-    POSN coord;
-    POSN delta;
-    bool isAlive;
-    char next;
-    TYPE_INIMIGO type;
-} INIMIGO;
-
-typedef struct
-{
-    POSN coord;
-    int vidas;
-} BASE;
-
-
-// Função para mover um elemento
-void move(int *x, int *y, int dx, int dy)
-{
-    *x += dx;
-    *y += dy;
-}
-
-// Função para verificar se é possível mover
-int podeMover(int x, int y, int dx, int dy)
-{
-    // Verifica se a nova posição é uma parede ou se não há movimento
-    if (map[y + dy][x + dx] == 'W' || (dx == 0 && dy == 0))
-    {
-        return 0; // Não pode mover
-    }
-
-    return 1; // Pode mover
-}
-
-Texture2D baseTexture;
-Texture2D chaoTexture;
-Texture2D paredeTexture;
-Texture2D buracoTexture;
-Texture2D recursoTexture;
-Texture2D barricadaTexture;
-
-// Função principal do jogo
-int runJogo(char mapa[50], int xPersonagem, int yPersonagem, int NUM_INIMIGOS,
-            char texturaBase[50], char texturaChao[50], char texturaParede[50],
-            char texturaBuraco[50], char texturaRecurso[50], char texturaBarricada[50])
+int main(void)
 {
     srand(time(NULL));
 
-    // Inicializa variáveis básicas
-    PLAYER player;
-    BASE base;
-    INIMIGO array_inimigos[MAX_INIMIGOS];
-    TYPE_INIMIGO type;
-    int contador = 0, i;
-
-    // Inicializa o jogador
-    player.coord.x = xPersonagem;
-    player.coord.y = yPersonagem;
-    player.vidas = 3;
-    player.recursos = 0;
-
-    // Inicializa os sons
+    // Inicialização dos sons
     InitAudioDevice();
-    Sound fxWav = LoadSound("Sons\\Buraco1.ogg");
-    Sound fxWav2 = LoadSound("Sons\\Barricada1.ogg");
+    Sound fxWav = LoadSound("Sons\\Buraco.ogg");
+    Sound fxWav2 = LoadSound("Sons\\Barricada.ogg");
     SetSoundVolume(fxWav, 0.1f);
     SetSoundVolume(fxWav2, 0.1f);
 
-    // Carrega o mapa
-    LoadMap(mapa);
+    InitWindow(LARGURA, ALTURA, "Página principal");
+    CarregarTexturas();
+    SetTargetFPS(60);
+
+    LoadMap("mapa1.txt");
+
+    int id = 0, i = 0;
+    INIMIGO array_inimigos[MAX_INIMIGOS];
+    PLAYER player;
 
     // Inicializa inimigos e base
-    for (int j = 0; j < MAP_HEIGHT; j++)
+    int objetivoX = -1, objetivoY = -1;
+    for (int mapY = 0; mapY < ALTURA_GRID; mapY++)
     {
-        for (int i = 0; i < MAP_WIDTH; i++)
+        for (int mapX = 0; mapX < LARGURA_GRID; mapX++)
         {
-            if (map[j][i] == 'E' && contador < NUM_INIMIGOS)
+            if (map[mapY][mapX] == 'M' && i < MAX_INIMIGOS)
             {
-                array_inimigos[contador] = (INIMIGO){ .coord = {i, j}, .isAlive = true, .delta = {0, 0}, .next = '.' };
-                contador++;
+                array_inimigos[i] = (INIMIGO){ .coord = {mapX, mapY + MAP_OFFSET}, .ultimaDirecao = {0, 0}, .ultimoMovimento = GetTime(), .vida = 3};
+                i++;
             }
-            else if (map[j][i] == 'S')
+            else if (map[mapY][mapX] == 'S')
             {
-                base.coord.x = i;
-                base.coord.y = j;
-                base.vidas = 3;
+                objetivoX = mapX;
+                objetivoY = mapY + MAP_OFFSET;
+            }
+            else if (map[mapY][mapX] == 'J')
+            {
+                player.coord.x = mapX;
+                player.coord.y = mapY + MAP_OFFSET;
             }
         }
     }
 
-    InitWindow(LARGURA, ALTURA, "Pagina principal - Fase 1");
-    SetTargetFPS(60);
+    int numBarricadas = 0;
+    BARRICADA barricadas[MAX_BARRICADAS];
 
-    bool isPaused = false;
-    int contadorMovimentos = 0;
-    int tempoTrap = 0, trapAtivada = 0;
-    int tempoMensagem = 0, mensagemAtivada = 0;
-    bool flagGameOver = false;
-    int cooldownVida = 0;
-    int tempoGameOver = 0;
-    int velocidadeAumentada = 5;
-    int cooldownInimigos = 0; // Cooldown padrão dos inimigos
+    int numMinas = 0;
+    MINA minas[MAX_MINAS];
 
-    // Inicializa texturas
-    baseTexture = LoadTexture(texturaBase);
-    chaoTexture = LoadTexture(texturaChao);
-    paredeTexture = LoadTexture(texturaParede);
-    buracoTexture = LoadTexture(texturaBuraco);
-    recursoTexture = LoadTexture(texturaRecurso);
-    barricadaTexture = LoadTexture(texturaBarricada);
+    int numArqueiros = 0;
+    ARQUEIRO arqueiros[MAX_ARQUEIROS];
+
+    int numFlechas = 0;
+    FLECHA flechas[MAX_FLECHAS] = {0};
 
     while (!WindowShouldClose())
     {
-        if (IsKeyPressed(KEY_TAB))
+        double tempoAtual = GetTime();
+
+        // Movimentação do personagem
+        if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)))
         {
-            isPaused = !isPaused;
+            move(&player.coord.x, &player.coord.y, 1, 0);
         }
 
-        if (!isPaused && !flagGameOver)
+        if ((IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)))
         {
-            // Movimentação do personagem
-            if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && podeMover(player.coord.x, player.coord.y, 1, 0))
-            {
-                move(&player.coord.x, &player.coord.y, 1, 0);
-            }
+            move(&player.coord.x, &player.coord.y, -1, 0);
+        }
 
-            if ((IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) && podeMover(player.coord.x, player.coord.y, -1, 0))
-            {
-                move(&player.coord.x, &player.coord.y, -1, 0);
-            }
+        if ((IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)))
+        {
+            move(&player.coord.x, &player.coord.y, 0, -1);
+        }
 
-            if ((IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) && podeMover(player.coord.x, player.coord.y, 0, -1))
-            {
-                move(&player.coord.x, &player.coord.y, 0, -1);
-            }
+        if ((IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)))
+        {
+            move(&player.coord.x, &player.coord.y, 0, 1);
+        }
 
-            if ((IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) && podeMover(player.coord.x, player.coord.y, 0, 1))
-            {
-                move(&player.coord.x, &player.coord.y, 0, 1);
-            }
+        int mapX = player.coord.x;
+        int mapY = player.coord.y - MAP_OFFSET;
 
-            // Interações do jogador
-            switch (map[player.coord.y][player.coord.x])
-            {
-                case 'R':
-                    player.recursos++;
-                    map[player.coord.y][player.coord.x] = '.'; // Remove o recurso
-                    break;
-                case 'H':
-                    PlaySound(fxWav);
-                    break;
-                case 'T':
-                    trapAtivada = 1; // Ativa a trap
-                    tempoTrap = 0; // Reinicia o contador de tempo
-                    mensagemAtivada = 1; // Ativa a mensagem
-                    tempoMensagem = 0; // Reinicia o contador da mensagem
-                    break;
-            }
+        // Verifica se o jogador encostou em um recurso (R)
+        if (map[mapY][mapX] == 'R')
+        {
+            recursos++;
+            map[mapY][mapX] = '.'; // Remove o recurso do mapa
+        }
 
-            if (trapAtivada)
+        // Verifica se o jogador encostou em um buraco (H)
+        if (map[mapY][mapX] == 'H')
+        {
+            PlaySound(fxWav);
+        }
+
+        // Barricadas
+        if (recursos >= 2 && map[mapY][mapX] == '.' && IsKeyPressed('E') && numBarricadas < MAX_BARRICADAS)
+        {
+            PlaySound(fxWav2);
+            map[mapY][mapX] = 'B';
+            barricadas[numBarricadas].coord.x = mapX;
+            barricadas[numBarricadas].coord.y = mapY + MAP_OFFSET;
+            barricadas[numBarricadas].vida = 3; // Inicializa a vida da barricada
+            barricadas[numBarricadas].ultimoDano = tempoAtual; // Inicializa o tempo do último dano
+            numBarricadas++;
+        }
+
+        // Bomba
+        if (recursos >= 1 && map[mapY][mapX] == '.' && IsKeyPressed('G'))
+        {
+            PlaySound(fxWav2);
+            map[mapY][mapX] = 'A';
+        }
+
+        // Mina
+        if (recursos >= 5 && map[mapY][mapX] == '.' && IsKeyPressed('R') && numMinas < MAX_MINAS)
+        {
+            PlaySound(fxWav2);
+            map[mapY][mapX] = '1';
+            minas[numMinas].coord.x = mapX;
+            minas[numMinas].coord.y = mapY + MAP_OFFSET;
+            minas[numMinas].ultimoRecurso = tempoAtual; // Inicializa o tempo do último recurso produzido
+            numMinas++;
+        }
+
+        // Arqueiro
+        if (recursos >= 5 && map[mapY][mapX] == '.' && IsKeyPressed('F') && numArqueiros < MAX_ARQUEIROS)
+        {
+            PlaySound(fxWav2);
+            map[mapY][mapX] = '2';
+            arqueiros[numArqueiros].coord.x = mapX;
+            arqueiros[numArqueiros].coord.y = mapY + MAP_OFFSET;
+            arqueiros[numArqueiros].ultimoTiro = tempoAtual; // Inicializa o tempo do último tiro
+            numArqueiros++;
+        }
+
+        int novosX[MAX_INIMIGOS];
+        int novosY[MAX_INIMIGOS];
+
+        for (int j = 0; j < i; j++)
+        {
+            if (tempoAtual - array_inimigos[j].ultimoMovimento >= 0.1)
             {
-                tempoTrap++;
-                if (tempoTrap >= 100)
+                moverInimigo(&array_inimigos[j], objetivoX, objetivoY, &novosX[j], &novosY[j]);
+                array_inimigos[j].ultimoMovimento = tempoAtual; // Atualiza o tempo do último movimento
+
+                char tile = map[novosY[j] - MAP_OFFSET][novosX[j]];
+                if (tile == 'B')
                 {
-                    trapAtivada = 0; // Desativa a trap após 100 iterações
+                    // Encontra a barricada correspondente
+                    for (int k = 0; k < numBarricadas; k++)
+                    {
+                        if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
+                        {
+                            barricadas[k].vida--;
+                            if (barricadas[k].vida <= 0)
+                            {
+                                map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualizar a posição no mapa para '.'
+                                for (int l = k; l < numBarricadas - 1; l++)
+                                {
+                                    barricadas[l] = barricadas[l + 1];
+                                }
+                                numBarricadas--;
+                            }
+                            break;
+                        }
+                    }
+                }
+                else if ((novosX[j] == objetivoX && novosY[j] == objetivoY) || tile == 'A')
+                {
+                    // Inimigo chegou à base 'S' ou encontrou uma bomba e deve ser removido
+                    map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualizar a posição no mapa para '.'
+                    map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpar a posição antiga no mapa
+                    removerInimigo(array_inimigos, &i, j);
+                    j--; // Ajustar índice após remoção
+                }
+
+                else if (array_inimigos[j].vida <= 0)
+                {
+                    // Inimigo morreu por causa da vida zerada
+                    map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpar a posição antiga no mapa
+                    removerInimigo(array_inimigos, &i, j);
+                    j--; // Ajustar índice após remoção
+                }
+                else if (tile == '.')
+                {
+                    map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpar a posição antiga no mapa
+                    array_inimigos[j].coord.x = novosX[j];
+                    array_inimigos[j].coord.y = novosY[j];
+                    map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualizar a posição no mapa
                 }
             }
+        }
 
-            contadorMovimentos ++;
-            if (contadorMovimentos % (trapAtivada ? 10 / velocidadeAumentada : 10) == 0)
+        // Verificar se há inimigos ao lado das barricadas e aplicar dano
+        for (int k = 0; k < numBarricadas; k++)
+        {
+            if (inimigoAoLado(array_inimigos, i, barricadas[k].coord.x, barricadas[k].coord.y))
             {
-                for (i = 0; i < NUM_INIMIGOS; i++)
+                if (tempoAtual - barricadas[k].ultimoDano >= 2.0)
                 {
-                    if (array_inimigos[i].isAlive)
+                    barricadas[k].vida--;
+                    barricadas[k].ultimoDano = tempoAtual;
+                    if (barricadas[k].vida <= 0)
                     {
-                        while(!podeMover(array_inimigos[i].coord.x, array_inimigos[i].coord.y, array_inimigos[i].delta.x, array_inimigos[i].delta.y)) {
-                            // Gera novos valores para delta.x e delta.y
-                            array_inimigos[i].delta.x = rand() % 3 - 1; // Pode ser -1, 0 ou 1
-                            array_inimigos[i].delta.y = rand() % 3 - 1; // Pode ser -1, 0 ou 1
+                        map[barricadas[k].coord.y - MAP_OFFSET][barricadas[k].coord.x] = '.'; // Atualizar a posição no mapa para '.'
+                        for (int l = k; l < numBarricadas - 1; l++)
+                        {
+                            barricadas[l] = barricadas[l + 1];
                         }
-                         map[array_inimigos[i].coord.y][array_inimigos[i].coord.x] = array_inimigos[i].next;
-
-                        // Guarda o char do próximo movimento do inimigo
-                        array_inimigos[i].next = map[array_inimigos[i].coord.y + array_inimigos[i].delta.y][array_inimigos[i].coord.x + array_inimigos[i].delta.x];
-
-                        // Muda o char do próximo
-                        map[array_inimigos[i].coord.y + array_inimigos[i].delta.y][array_inimigos[i].coord.x + array_inimigos[i].delta.x] = 'E';
-
-                        // Move o inimigo
-                        move(&array_inimigos[i].coord.x, &array_inimigos[i].coord.y, array_inimigos[i].delta.x, array_inimigos[i].delta.y);
+                        numBarricadas--;
                     }
                 }
             }
-
-            // Atualiza a lógica da mensagem
-            if (mensagemAtivada)
-            {
-                tempoMensagem++;
-                if (tempoMensagem >= TEMPO_MENSAGEM)
-                {
-                    mensagemAtivada = 0; // Desativa a mensagem após 2 segundos
-                }
-            }
-
-            for (int i = 0; i < NUM_INIMIGOS; i++)
-            {
-                // Quando o inimigo toca na base
-                if (array_inimigos[i].next == 'S' && array_inimigos[i].isAlive)
-                {
-                    // Tira vida da base
-                    base.vidas--;
-
-                    // Mata o inimigo
-                    map[array_inimigos[i].coord.y][array_inimigos[i].coord.x] = array_inimigos[i].next;
-                    array_inimigos[i].coord.x = -1;
-                    array_inimigos[i].coord.y = -1;
-                    array_inimigos[i].isAlive = false;
-                }
-
-                // Quando o inimigo toca no jogador
-                if (array_inimigos[i].coord.y == player.coord.y && array_inimigos[i].coord.x == player.coord.x && array_inimigos[i].isAlive && cooldownVida <= 0)
-                {
-                    // Tira vida do jogador
-                    player.vidas--;
-                    cooldownVida = 60;
-                }
-            }
-
-            cooldownVida--;
-
-            // Verifica se a vida da base chegou a zero
-            if (base.vidas <= 0 || player.vidas <= 0)
-            {
-                flagGameOver = true; // Ativa o estado de GameOver
-                tempoGameOver = 0; // Reinicia o contador de tempo do GameOver
-            }
         }
 
-        // Estado de GameOver
-        if (flagGameOver)
+        // Produzir recursos nas minas a cada 5 segundos
+        for (int m = 0; m < numMinas; m++)
         {
-            tempoGameOver++;
-            if (tempoGameOver >= 120) // Mostra a mensagem por 2 segundos
+            if (tempoAtual - minas[m].ultimoRecurso >= 5.0)
             {
-                CloseWindow(); // Fecha a janela após 2 segundos
+                recursos++;
+                minas[m].ultimoRecurso = tempoAtual;
             }
         }
+
+        // Arqueiros atirando flechas
+        for (int a = 0; a < numArqueiros; a++)
+        {
+            if (tempoAtual - arqueiros[a].ultimoTiro >= 5.0)
+            {
+                atirarFlecha(&arqueiros[a], flechas, &numFlechas, array_inimigos, i);
+            }
+        }
+
+        // Atualizar flechas
+        atualizarFlechas(flechas, &numFlechas, array_inimigos, &i);
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
-
-        // Desenho do mapa
         DrawMap();
 
-        // Desenho do personagem
-        DrawRectangle(player.coord.x * LADO, player.coord.y * LADO, LADO, LADO, WHITE);
-
-        // Desenho das barricadas
-        if(player.recursos >= 2 && map[player.coord.y][player.coord.x] == '.' && IsKeyPressed(KEY_B))
+        // Desenha os inimigos e suas barras de vida
+        for (int j = 0; j < i; j++)
         {
-            // Som
-            PlaySound(fxWav2);
-
-            // Constroi uma barricada no local do personagem
-            map[player.coord.y][player.coord.x] = 'B';
-
-            // Reduz recursos
-            player.recursos -= 2;
+            DrawTexture(inimigotexture, array_inimigos[j].coord.x * LADO, array_inimigos[j].coord.y * LADO, WHITE);
+            drawBarraDeVidaInimigo(array_inimigos[j].coord.x, array_inimigos[j].coord.y, array_inimigos[j].vida);
         }
 
-        // Desenho dos inimigos
-        for (i = 0; i < NUM_INIMIGOS; i++)
+        // Desenha as barricadas e suas barras de vida
+        for (int k = 0; k < numBarricadas; k++)
         {
-            if(array_inimigos[i].isAlive)
+            DrawTexture(barricadatexture, barricadas[k].coord.x * LADO, barricadas[k].coord.y * LADO, WHITE);
+            drawBarraDeVidaBarricada(barricadas[k].coord.x, barricadas[k].coord.y, barricadas[k].vida);
+        }
+
+
+        // Desenha as flechas
+        for (int f = 0; f < numFlechas; f++)
+        {
+            if (flechas[f].ativa)
             {
-                DrawRectangle(array_inimigos[i].coord.x * LADO, array_inimigos[i].coord.y * LADO, LADO, LADO, RED);
+                DrawTexture(flechatexture, flechas[f].coord.x * LADO, flechas[f].coord.y * LADO, WHITE);
             }
         }
 
-        // Exibe a mensagem de Game Over
-        if (flagGameOver)
-        {
-            // Desenha a sombra
-            DrawText("GAME OVER!", LARGURA / 2 - MeasureText("GAME OVER!", 40) / 2 + 2, ALTURA / 2 - 10 + 2, 40, BLACK);
-            // Desenha o texto principal
-            DrawText("GAME OVER!", LARGURA / 2 - MeasureText("GAME OVER!", 40) / 2, ALTURA / 2 - 10, 40, RED);
-        }
-
-        // Exibe a mensagem sobre a armadilha
-        if (mensagemAtivada)
-        {
-            DrawText("ARMADILHA ATIVADA!", LARGURA / 2 - MeasureText("ARMADILHA ATIVADA!", 20) / 2, ALTURA / 2 + 20, 20, BLACK);
-        }
-
-        // Pausa do jogo
-        if (isPaused)
-        {
-            Color textColor = DARKBLUE;
-
-            // Desenha os textos centralizados
-            DrawText("PAUSADO", LARGURA / 2 - MeasureText("PAUSADO", 40) / 2 + 2, ALTURA / 2 - 20 - 30 + 2, 40, BLACK);
-            DrawText("PAUSADO", LARGURA / 2 - MeasureText("PAUSADO", 40) / 2, ALTURA / 2 - 20 - 30, 40, textColor);
-            DrawText("Pressione Q para Sair", LARGURA / 2 - MeasureText("Pressione Q para Sair", 20) / 2 + 2, ALTURA / 2 - 15 + 30 + 2, 20, BLACK);
-            DrawText("Pressione Q para Sair", LARGURA / 2 - MeasureText("Pressione Q para Sair", 20) / 2, ALTURA / 2 - 15 + 30, 20, textColor);
-
-            // Se o usuário pressiona Q, sai do jogo
-            if (IsKeyPressed('Q'))
-            {
-                return 0;
-            }
-        }
-
-        // Desenho da posição do personagem
-        char posText[50];
-        sprintf(posText, "Pos: (%d, %d)", player.coord.x, player.coord.y);
-        DrawText(posText, 5 + 1, 1, 20, (Color){0, 0, 0, 255}); // Sombra preta
-        DrawText(posText, 5, 0, 20, (Color){200, 200, 200, 255}); // Texto cinza
-
-        // Desenho das vidas do jogador
-        char vidaJogadorText[50];
-        sprintf(vidaJogadorText, "Vidas do jogador: %d", player.vidas);
-        DrawText(vidaJogadorText, 130 + 1, 1, 20, (Color){0, 0, 0, 255}); // Sombra preta
-        DrawText(vidaJogadorText, 130, 0, 20, (Color){255, 255, 255, 255}); // Texto branco
-
-        // Desenho das vidas da base
-        char vidaBaseText[50];
-        sprintf(vidaBaseText, "Vidas da base: %d", base.vidas);
-        DrawText(vidaBaseText, 350 + 1, 1, 20, (Color){0, 0, 0, 255}); // Sombra preta
-        DrawText(vidaBaseText, 350, 0, 20, (Color){255, 255, 200, 255}); // Texto amarelo claro
-
-        // Desenho do número de recursos
-        char recursosText[50];
-        sprintf(recursosText, "Recursos: %d", player.recursos);
-        DrawText(recursosText, 545 + 1, 1, 20, (Color){0, 0, 0, 255}); // Sombra preta
-        DrawText(recursosText, 545, 0, 20, (Color){200, 255, 255, 255}); // Texto azul claro
+        // Desenho da HUD
+        hud();
+        DrawRectangle(player.coord.x * LADO, player.coord.y * LADO, LADO, LADO, RED);
 
         EndDrawing();
     }
 
-    // Libera as texturas
-    UnloadTexture(baseTexture);
-    UnloadTexture(chaoTexture);
-    UnloadTexture(paredeTexture);
-    UnloadTexture(buracoTexture);
-    UnloadTexture(recursoTexture);
-    UnloadTexture(barricadaTexture);
-    CloseAudioDevice();
+    UnloadSound(fxWav);
+    UnloadSound(fxWav2); // Unload sound data
+    UnloadTexture(inimigotexture); // Descarregar a textura do inimigo
+    UnloadTexture(barricadatexture); // Descarregar a textura da barricada
+    UnloadTexture(flechatexture); // Descarregar a textura da flecha
+
+    DescarregarTexturas();
+    CloseAudioDevice(); // Close audio device
+    CloseWindow();
 
     return 0;
-}
-
-int main()
-{
-    runJogo("mapa1.txt", 2, 2, 7, "Texturas\\Base1.png", "Texturas\\Chao1.png", "Texturas\\Parede1.png", "Texturas\\Buraco1.png", "Texturas\\Recurso1.png", "Texturas\\Barricada1.png"); // Fase 1
 }
