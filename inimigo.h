@@ -5,13 +5,11 @@
 
 typedef struct
 {
-    int id;
     POSN coord;
     POSN direcao;
     POSN ultimaDirecao;
     int vida;
-    double ultimoMovimento; // Tempo do último movimento
-
+    double ultimoMovimento;
 } INIMIGO;
 
 #endif

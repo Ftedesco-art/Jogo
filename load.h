@@ -18,8 +18,9 @@ extern Texture2D caminho1texture;     // Textura do caminho horizontal
 extern Texture2D caminho2texture;     // Textura do caminho vertical
 extern Texture2D caminho3texture;     // Textura do caminho curva cima-esquerda
 extern Texture2D caminho4texture;     // Textura do caminho curva cima-direita
-extern Texture2D inimigotexture;     // Textura do inimigo
-extern Texture2D minatexture; //Textura da Mina
+extern Texture2D inimigotexture;      // Textura do inimigo
+extern Texture2D minatexture;         //Textura da Mina
+
 // TEXTURAS DE HUD
 extern Texture2D bombahudtexture;     // Textura do ícone da bomba
 extern Texture2D vidahudtexture;      // Textura do ícone da vida do jogador
@@ -27,7 +28,10 @@ extern Texture2D barricadahudtexture; // Textura do ícone da barricada
 extern Texture2D recursohudtexture;
 extern Texture2D arqueirohudtexture;
 extern Texture2D minahudtexture;
-extern Texture2D flechatexture;
+extern Texture2D flechadireitatexture;
+extern Texture2D flechaesquerdatexture;
+extern Texture2D flechacimatexture;
+extern Texture2D flechabaixotexture;
 extern Texture2D arqueirotexture;
 // TEXTURAS DE ITENS
 extern Texture2D bombatexture;        // Textura da bomba no mapa

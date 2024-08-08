@@ -1,6 +1,10 @@
-#include "mapa.h"
 #include <stdio.h>
+
+#include "hud.h"
 #include "main.h"
+#include "eventos.h"
+#include "mapa.h"
+#include "inimigo.h"
 #include "load.h"
 
 char map[ALTURA_GRID][LARGURA_GRID + 1]; // +1 para o caractere nulo
@@ -66,9 +70,6 @@ void DrawMap()
                 case 'J':
                     texture = spawntexture;
                     break;
-                case 'B':
-                    texture = barricadatexture;
-                    break;
                 case 'K':
                     texture = spawninimigotexture;
                     break;
@@ -76,16 +77,19 @@ void DrawMap()
                     texture = inimigotexture;
                     break;
                 case '1':
-                    texture = minatexture;
+                    texture = barricadatexture;
                     break;
                 case '2':
-                    texture = arqueirotexture;
-                    break;
-                case 'A':
                     texture = bombatexture;
                     break;
+                case '3':
+                    texture = minatexture;
+                    break;
+                case '4':
+                    texture = arqueirotexture;
+                    break;
                 default:
-                    tileColor = GRAY;
+                    texture = chaotexture;
                     break;
                 }
             }

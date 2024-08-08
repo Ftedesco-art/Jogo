@@ -1,10 +1,18 @@
-#include "eventos.h"
+#include "hud.h"
 #include "main.h"
+#include "eventos.h"
 #include "mapa.h"
 #include "inimigo.h"
 
-#define MAX_FLECHAS 100
 #define MAP_OFFSET 6
+
+extern INIMIGO array_inimigos[MAX_INIMIGOS];
+extern JOGADOR player;
+extern BASE base;
+extern BARRICADA barricadas[MAX_BARRICADAS];
+extern MINA minas[MAX_MINAS];
+extern ARQUEIRO arqueiros[MAX_ARQUEIROS];
+extern FLECHA flechas[MAX_FLECHAS];
 
 void atualizarFlechas(FLECHA flechas[], int *numFlechas, INIMIGO inimigos[], int *numInimigos)
 {
@@ -14,6 +22,9 @@ void atualizarFlechas(FLECHA flechas[], int *numFlechas, INIMIGO inimigos[], int
         {
             flechas[i].coord.x += flechas[i].direcao.x;
             flechas[i].coord.y += flechas[i].direcao.y;
+
+            int mapX = flechas[i].coord.x;
+            int mapY = flechas[i].coord.y - MAP_OFFSET;
 
             // Verifica se a flecha colidiu com algum inimigo
             for (int j = 0; j < *numInimigos; j++)
@@ -29,6 +40,12 @@ void atualizarFlechas(FLECHA flechas[], int *numFlechas, INIMIGO inimigos[], int
                     flechas[i].ativa = 0;
                     break;
                 }
+            }
+
+            // Verifica se a flecha colidiu com uma parede (tile 'W')
+            if (map[mapY][mapX] == 'W')
+            {
+                flechas[i].ativa = 0;
             }
 
             // Verifica se a flecha saiu do mapa
@@ -60,18 +77,26 @@ void atirarFlecha(ARQUEIRO *arqueiro, FLECHA flechas[], int *numFlechas, INIMIGO
 {
     int inimigoMaisProximo = encontrarInimigoMaisProximo(inimigos, numInimigos, arqueiro->coord.x, arqueiro->coord.y);
 
-    if (inimigoMaisProximo != -1 && *numFlechas < MAX_FLECHAS)
+    if (inimigoMaisProximo >= 0 && *numFlechas < MAX_FLECHAS)
     {
-        FLECHA *flecha = &flechas[*numFlechas];
-        flecha->coord.x = arqueiro->coord.x;
-        flecha->coord.y = arqueiro->coord.y;
-        flecha->ativa = 1;
         int dx = inimigos[inimigoMaisProximo].coord.x - arqueiro->coord.x;
         int dy = inimigos[inimigoMaisProximo].coord.y - arqueiro->coord.y;
-        if (dx != 0) flecha->direcao.x = dx / abs(dx);
-        if (dy != 0) flecha->direcao.x = dy / abs(dy);
-        (*numFlechas)++;
-        arqueiro->ultimoTiro = GetTime();
+
+        // Calcula a distância do inimigo mais próximo
+        int distancia = abs(dx) + abs(dy);
+
+        // Verifica se o inimigo está dentro do alcance de 5 tiles
+        if (distancia <= 5)
+        {
+            FLECHA *flecha = &flechas[*numFlechas];
+            flecha->coord.x = arqueiro->coord.x;
+            flecha->coord.y = arqueiro->coord.y;
+            flecha->ativa = 1;
+            flecha->direcao.x = (dx != 0) ? dx / abs(dx) : 0;
+            flecha->direcao.y = (dy != 0) ? dy / abs(dy) : 0;
+            (*numFlechas)++;
+            arqueiro->ultimoTiro = GetTime();
+        }
     }
 }
 

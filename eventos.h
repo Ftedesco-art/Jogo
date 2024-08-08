@@ -1,6 +1,8 @@
 #ifndef EVENTOS_H
 #define EVENTOS_H
 
+#include "mapa.h"
+
 typedef struct
 {
     int x;
@@ -10,7 +12,14 @@ typedef struct
 typedef struct
 {
     POSN coord;
-} PLAYER;
+    int vidas;
+} JOGADOR;
+
+typedef struct
+{
+    POSN coord;
+    int vidas;
+} BASE;
 
 typedef struct
 {

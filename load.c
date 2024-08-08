@@ -9,13 +9,12 @@ Texture2D barricadatexture;
 Texture2D spawntexture;
 Texture2D basetexture;
 Texture2D spawninimigotexture;
-Texture2D caminho1texture;
-Texture2D caminho2texture;
-Texture2D caminho3texture;
-Texture2D caminho4texture;
 Texture2D inimigotexture;
 Texture2D minatexture;
-Texture2D flechatexture;
+Texture2D flechadireitatexture;
+Texture2D flechaesquerdatexture;
+Texture2D flechacimatexture;
+Texture2D flechabaixotexture;
 Texture2D arqueirotexture;
 
 
@@ -35,7 +34,10 @@ Texture2D explosaotexture;
 void CarregarTexturas()
 {
     arqueirotexture = LoadTexture("Texturas\\Arqueiro.png");
-    flechatexture = LoadTexture("Texturas\\Flecha.png");
+    flechadireitatexture = LoadTexture("Texturas\\FlechaDireita.png");
+    flechaesquerdatexture = LoadTexture("Texturas\\FlechaEsquerda.png");
+    flechacimatexture = LoadTexture("Texturas\\FlechaCima.png");
+    flechabaixotexture = LoadTexture("Texturas\\FlechaBaixo.png");
     minahudtexture = LoadTexture("Texturas\\Minahud.png");
     arqueirohudtexture = LoadTexture("Texturas\\Arqueirohud.png");
     minatexture = LoadTexture("Texturas\\Mina.png");
@@ -48,10 +50,6 @@ void CarregarTexturas()
     spawntexture = LoadTexture("Texturas\\Spawn.png");
     basetexture = LoadTexture("Texturas\\Base.png");
     spawninimigotexture = LoadTexture("Texturas\\Spawninimigo.png");
-    caminho1texture = LoadTexture("Texturas\\Horizontal.png");
-    caminho2texture = LoadTexture("Texturas\\Vertical.png");
-    caminho3texture = LoadTexture("Texturas\\Curva1.png");
-    caminho4texture = LoadTexture("Texturas\\Curva2.png");
     bombahudtexture = LoadTexture("Texturas\\Bombahud.png");
     vidahudtexture = LoadTexture("Texturas\\Vida.png");
     barricadahudtexture = LoadTexture("Texturas\\Barricadahud.png");
@@ -72,10 +70,6 @@ void DescarregarTexturas()
     UnloadTexture(spawntexture);
     UnloadTexture(basetexture);
     UnloadTexture(spawninimigotexture);
-    UnloadTexture(caminho1texture);
-    UnloadTexture(caminho2texture);
-    UnloadTexture(caminho3texture);
-    UnloadTexture(caminho4texture);
     UnloadTexture(inimigotexture);
     UnloadTexture(minatexture);
     UnloadTexture(arqueirotexture);
@@ -90,7 +84,11 @@ void DescarregarTexturas()
 
     // TEXTURAS DE ITENS
     UnloadTexture(bombatexture);
-    UnloadTexture(flechatexture);
+    UnloadTexture(flechadireitatexture);
+    UnloadTexture(flechaesquerdatexture);
+    UnloadTexture(flechacimatexture);
+    UnloadTexture(flechabaixotexture);
+
 
     // TEXTURAS DE ANIMAÇÃO
     UnloadTexture(explosaotexture);
