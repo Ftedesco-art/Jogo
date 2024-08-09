@@ -33,19 +33,14 @@ int run()
     ARQUEIRO arqueiros[MAX_ARQUEIROS];
     FLECHA flechas[MAX_FLECHAS];
 
-    if (info.flag == 0) { // Jogo não foi carregado, é um jogo novo
-        reiniciarJogo(array_inimigos, &player, &base, barricadas,
-                       &numBarricadas, minas, &numMinas,
-                       arqueiros, &numArqueiros, flechas,
-                       &numFlechas, &numInimigos, &recursos,
-                       &tempoAtual);
-    } else { // run() iniciou como um jogo salvo
-        // Resetar variáveis antes de carregar
-        reiniciarJogo(array_inimigos, &player, &base, barricadas,
-                       &numBarricadas, minas, &numMinas,
-                       arqueiros, &numArqueiros, flechas,
-                       &numFlechas, &numInimigos, &recursos,
-                       &tempoAtual);
+    // Resetar variáveis antes de carregar
+    reiniciarJogo(array_inimigos, &player, &base, barricadas,
+                   &numBarricadas, minas, &numMinas,
+                   arqueiros, &numArqueiros, flechas,
+                   &numFlechas, &numInimigos, &recursos,
+                   &tempoAtual);
+
+    if (info.flag == 1) { // Jogo salvo
         if (!carrega_dados("jogo_salvo.bin", map, array_inimigos, &player, &base, barricadas,
                         &numBarricadas, minas, &numMinas, arqueiros,
                         &numArqueiros, flechas, &numFlechas,
@@ -56,6 +51,7 @@ int run()
 
     // Carrega texturas
     CarregarTexturas();
+    CarregaFont();
 
     bool flagTrap = false;
     float velocity = .1; // Movimento a cada quantos segundos
@@ -106,7 +102,7 @@ int run()
 
             if (!flagTrap || trapTimer <= 0)
             {
-                velocity = .1;
+                velocity = 1;
                 flagTrap = false;
             }
             else
@@ -141,7 +137,7 @@ int run()
                 map[yPersonagem][xPersonagem] = '1';
                 barricadas[numBarricadas].coord.x = xPersonagem;
                 barricadas[numBarricadas].coord.y = yPersonagem + MAP_OFFSET;
-                barricadas[numBarricadas].vida = 3; // Inicializa a vida da barricada
+                barricadas[numBarricadas].vida = 5; // Inicializa a vida da barricada
                 barricadas[numBarricadas].ultimoDano = tempoAtual; // Inicializa o tempo do último dano
                 numBarricadas++;
                 recursos -= 2;
@@ -223,65 +219,51 @@ int run()
 
                     char tile = map[novosY[j] - MAP_OFFSET][novosX[j]];
 
-                    // Se for uma barricada
-                    if (tile == '1')
+                    switch (tile)
                     {
-                        // Encontra a barricada correspondente
-                        for (int k = 0; k < numBarricadas; k++)
-                        {
-                            if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
+                        case '1': // Inimigo encontrou uma bomba
+                            for (int k = 0; k < numBarricadas; k++)
                             {
-                                barricadas[k].vida--;
-                                if (barricadas[k].vida <= 0)
+                                if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
                                 {
-                                    map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                                    for (int l = k; l < numBarricadas - 1; l++)
+                                    barricadas[k].vida--;
+                                    if (barricadas[k].vida <= 0)
                                     {
-                                        barricadas[l] = barricadas[l + 1];
+                                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
+                                        for (int l = k; l < numBarricadas - 1; l++)
+                                        {
+                                            barricadas[l] = barricadas[l + 1];
+                                        }
+                                        numBarricadas--;
                                     }
-                                    numBarricadas--;
+                                    break;
                                 }
-                                break;
                             }
-                        }
-                    }
+                            break;
 
+                        case 'S': // Inimigo chegou à base
+                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                            removerInimigo(array_inimigos, &numInimigos, j);
+                            j--;
+                            base.vidas--;
+                            break;
 
-                    // Inimigo chegou à base 'S'
-                    else if ((tile == 'S'))
-                    {
-                        map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                        removerInimigo(array_inimigos, &numInimigos, j);
-                        j--; // Ajusta o índice após remoção
+                        case '2': // Inimigo encontrou uma bomba
+                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
+                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                            removerInimigo(array_inimigos, &numInimigos, j);
+                            j--;
+                            break;
 
-                        base.vidas--;
-                    }
+                        case '.': // Movimento normal
+                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                            array_inimigos[j].coord.x = novosX[j];
+                            array_inimigos[j].coord.y = novosY[j];
+                            map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
+                            break;
 
-                    // Inimigo encontrou uma bomba
-                    else if (tile == '2')
-                    {
-                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                        map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                        removerInimigo(array_inimigos, &numInimigos, j);
-                        j--; // Ajusta o índice após remoção
-                    }
-
-
-                    // Inimigo morreu por causa da vida zerada
-                    else if (array_inimigos[j].vida <= 0)
-                    {
-                        map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                        removerInimigo(array_inimigos, &numInimigos, j);
-                        j--; // Ajusta o índice após remoção
-                    }
-
-                    // Movimento normal
-                    else if (tile == '.')
-                    {
-                        map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpar a posição antiga no mapa
-                        array_inimigos[j].coord.x = novosX[j];
-                        array_inimigos[j].coord.y = novosY[j];
-                        map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
+                        default:
+                            break;
                     }
 
                     // Verifica se o inimigo colidiu com o jogador
@@ -293,6 +275,14 @@ int run()
                             player.vidas--; // Decrementa a vida do jogador
                             ultimoDano = tempoAtual; // Atualiza o tempo do último dano
                         }
+                    }
+
+                    // Inimigo morreu por causa da vida zerada
+                    if (array_inimigos[j].vida <= 0)
+                    {
+                        map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                        removerInimigo(array_inimigos, &numInimigos, j);
+                        j--; // Ajusta o índice após remoção
                     }
                 }
             }
@@ -337,6 +327,7 @@ int run()
 
     UnloadSound(fxWav);
     UnloadSound(fxWav2);
+    DescarregaFont();
     DescarregarTexturas();
     CloseAudioDevice();
     return 1;

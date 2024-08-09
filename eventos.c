@@ -3,9 +3,8 @@
 #include "eventos.h"
 #include "mapa.h"
 
+#include "raylib.h"
 #include <stdio.h>
-
-#define MAP_OFFSET 6
 
 void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
                    BASE *base, BARRICADA barricadas[MAX_BARRICADAS],
@@ -14,10 +13,9 @@ void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
                    int *numArqueiros, FLECHA flechas[MAX_FLECHAS],
                    int *numFlechas, int *numInimigos, int *recursos,
                    int *tempo) {
+
     // Carrega o mapa novamente
     LoadMap("mapa1.txt");
-
-    DescarregarTexturas();
 
     // Reinicia os contadores
     *numInimigos = 0;
@@ -165,53 +163,179 @@ int salva_jogo(const char* arquivo, INFO* estado) {
 }
 
 bool menu_inicial() {
+    CarregaFont();
+
+    // Tempo de entrada no menu
+    float entrou = GetTime();
+    float cooldown = 0.5f; // 0.5 segundos
+
+    int select = 1;
+    Color c1 = BLACK;
+    Color c2 = BLACK;
+    Color c3 = BLACK;
+
     while (true) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        DrawText("MENU PRINCIPAL", LARGURA / 2 - 70, ALTURA / 2 - 50, 20, BLACK);
-        DrawText("Pressione N para Novo Jogo", LARGURA / 2 - 150, ALTURA / 2, 20, BLACK);
-        DrawText("Pressione C para Carregar Jogo", LARGURA / 2 - 150, ALTURA / 2 + 30, 20, BLACK);
-        DrawText("Pressione Q para Sair", LARGURA / 2 - 150, ALTURA / 2 + 60, 20, BLACK);
+
+        // Definindo as cores com base na seleção
+        switch (select) {
+            case 1:
+                c1 = RED; c2 = BLACK; c3 = BLACK;
+                break;
+            case 2:
+                c1 = BLACK; c2 = RED; c3 = BLACK;
+                break;
+            case 3:
+                c1 = BLACK; c2 = BLACK; c3 = RED;
+                break;
+            default:
+                break;
+        }
+
+        Vector2 position = { (LARGURA - MeasureTextEx(defaultFont, "MENU PRINCIPAL", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "MENU PRINCIPAL", 20, 2).y) / 2 - 50 };
+        DrawTextEx(defaultFont, "MENU PRINCIPAL", position, 20, 2, BLACK);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione N para iniciar um novo jogo", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione N para iniciar um novo jogo", 20, 2).y) / 2 };
+        DrawTextEx(defaultFont, "Pressione N para iniciar um novo jogo", position, 20, 2, c1);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione C para carregar o jogo salvo", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione C para carregar o jogo salvo", 20, 2).y) / 2 + 30 };
+        DrawTextEx(defaultFont, "Pressione C para carregar o jogo salvo", position, 20, 2, c2);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione Q para sair", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione Q para sair", 20, 2).y) / 2 + 60 };
+        DrawTextEx(defaultFont, "Pressione Q para sair", position, 20, 2, c3);
+
         EndDrawing();
 
-        // Verifica as entradas do usuário
-        if (IsKeyPressed(KEY_N)) {
-            info.flag = 0; // Significa que o jogo é novo
-            run();
-            return true;
-        } else if (IsKeyPressed(KEY_C)) {
-            info.flag = 1; // Significa que o jogo é novo
-            run();
-            return true;
-        } else if (IsKeyPressed(KEY_Q)) {
-            return false;
+        // Verifica se o cooldown expirou
+        if (GetTime() - entrou >= cooldown) {
+            // Verifica as entradas do usuário
+            if ((IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) && select != 1) {
+                select--;
+            }
+
+            if ((IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) && select != 3) {
+                select++;
+            }
+
+            if (IsKeyPressed(KEY_SPACE)) {
+                switch (select) {
+                    case 1:
+                        info.flag = 0; // Significa que o jogo é novo
+                        run();
+                        return true;
+                    case 2:
+                        info.flag = 1; // Significa que o jogo é carregado
+                        run();
+                        return true;
+                    case 3:
+                        return false; // Sai do menu
+                }
+            }
+
+            // Verifica as entradas do usuário sem cooldown
+            if (IsKeyPressed(KEY_N)) {
+                info.flag = 0; // Significa que o jogo é novo
+                run();
+                return true;
+            } else if (IsKeyPressed(KEY_C)) {
+                info.flag = 1; // Significa que o jogo é carregado
+                run();
+                return true;
+            } else if (IsKeyPressed(KEY_Q)) {
+                return false; // Sai do menu
+            }
         }
     }
 }
 
+
 bool menu_pause(bool* paused) {
+    CarregaFont();
+
+    int select = 1;
+    Color c1;
+    Color c2;
+    Color c3;
+    Color c4;
+
     while (true) {
+        // Atualiza a seleção com base nas teclas pressionadas
+        if ((IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) && select != 1) {
+            select--;
+        }
+
+        if ((IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) && select != 4) {
+            select++;
+        }
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        DrawText("MENU PAUSE", LARGURA / 2 - 50, ALTURA / 2 - 50, 20, BLACK);
-        DrawText("Pressione C para Continuar", LARGURA / 2 - 150, ALTURA / 2, 20, BLACK);
-        DrawText("Pressione L para Carregar Jogo", LARGURA / 2 - 150, ALTURA / 2 + 30, 20, BLACK);
-        DrawText("Pressione S para Salvar Jogo", LARGURA / 2 - 150, ALTURA / 2 + 60, 20, BLACK);
-        DrawText("Pressione V para Voltar ao Menu Inicial", LARGURA / 2 - 150, ALTURA / 2 + 90, 20, BLACK);
+
+        Vector2 position = { (LARGURA - MeasureTextEx(defaultFont, "MENU PAUSE", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "MENU PAUSE", 20, 2).y) / 2 - 50 };
+        DrawTextEx(defaultFont, "MENU PAUSE", position, 20, 2, BLACK);
+
+        // Definindo as cores com base na seleção
+        switch (select) {
+            case 1:
+                c1 = RED; c2 = BLACK; c3 = BLACK; c4 = BLACK;
+                if (IsKeyPressed(KEY_SPACE)) {
+                    *paused = false; // Muda o estado de pausa para false
+                    return true; // Sai do menu de pausa
+                }
+                break;
+            case 2:
+                c1 = BLACK; c2 = RED; c3 = BLACK; c4 = BLACK;
+                if (IsKeyPressed(KEY_SPACE)) {
+                    info.flag = 1; // Flag para carregar o jogo
+                    run();
+                    return true;
+                }
+                break;
+            case 3:
+                c1 = BLACK; c2 = BLACK; c3 = RED; c4 = BLACK;
+                if (IsKeyPressed(KEY_SPACE)) {
+                    salva_jogo("jogo_salvo.bin", &info);
+                    return true;
+                }
+                break;
+            case 4:
+                c1 = BLACK; c2 = BLACK; c3 = BLACK; c4 = RED;
+                if (IsKeyPressed(KEY_SPACE)) {
+                    return false; // Retorna ao menu inicial
+                }
+                break;
+            default:
+                break;
+        }
+
+        // Desenho das opções do menu
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione TAB para continuar o jogo", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione TAB para continuar o jogo", 20, 2).y) / 2 };
+        DrawTextEx(defaultFont, "Pressione TAB para continuar o jogo", position, 20, 2, c1);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione C para carregar o jogo salvo", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione C para carregar o jogo salvo", 20, 2).y) / 2 + 30 };
+        DrawTextEx(defaultFont, "Pressione C para carregar o jogo salvo", position, 20, 2, c2);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione S para salvar o jogo e retornar ao menu inicial", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione S para salvar o jogo e retornar ao menu inicial", 20, 2).y) / 2 + 60 };
+        DrawTextEx(defaultFont, "Pressione S para salvar o jogo e retornar ao menu inicial", position, 20, 2, c3);
+
+        position = (Vector2){ (LARGURA - MeasureTextEx(defaultFont, "Pressione V para voltar ao menu inicial", 20, 2).x) / 2, (ALTURA - MeasureTextEx(defaultFont, "Pressione V para voltar ao menu inicial", 20, 2).y) / 2 + 90 };
+        DrawTextEx(defaultFont, "Pressione V para voltar ao menu inicial", position, 20, 2, c4);
+
         EndDrawing();
 
-        if (IsKeyPressed(KEY_C)) {
+        // Verifica as entradas do usuário
+        if (IsKeyPressed(KEY_TAB)) {
             *paused = false; // Muda o estado de pausa para false
             return true; // Sai do menu de pausa
-        } else if (IsKeyPressed(KEY_L)) {
-            info.flag = 1;
+        } else if (IsKeyPressed(KEY_C)) {
+            info.flag = 1; // Flag para carregar o jogo
             run();
             return true;
         } else if (IsKeyPressed(KEY_S)) {
             salva_jogo("jogo_salvo.bin", &info);
             return true;
         } else if (IsKeyPressed(KEY_V)) {
-            *paused = false;
             return false; // Retorna ao menu inicial
         }
     }

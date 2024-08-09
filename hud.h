@@ -1,15 +1,19 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef HUD_H
+#define HUD_H
 
 #include "main.h"
 #include "mapa.h"
 #include "eventos.h"
-
+#include "hud.h"
 #include "raylib.h"
 
+extern Font defaultFont;
+
+void CarregaFont();
+void DescarregaFont();
 void drawBarraDeVidaBarricada(int x, int y, int vida);
 void drawBarraDeVidaInimigo(int x, int y, int vida);
-void DrawHud(recursos, tempoAtual);
+void DrawHud(int recursos, int tempoAtual);
 
 typedef struct {
     char map[ALTURA_GRID][LARGURA_GRID + 1];
@@ -32,5 +36,5 @@ typedef struct {
 
 INFO info;
 
-#endif // UTIL_H
+#endif
 

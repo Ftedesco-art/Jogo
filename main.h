@@ -13,7 +13,4 @@ int inimigomove(int *x,int *y);
 int main(void);
 int run();
 
-extern int recursos;
-extern int tempoAtual;
-
 #endif
