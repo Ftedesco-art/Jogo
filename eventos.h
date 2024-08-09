@@ -52,4 +52,13 @@ typedef struct
     POSN coord;
 } RECURSO;
 
+typedef struct
+{
+    POSN coord;
+    POSN direcao;
+    POSN ultimaDirecao;
+    int vida;
+    double ultimoMovimento;
+} INIMIGO;
+
 #endif

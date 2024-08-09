@@ -4,18 +4,14 @@
 #include "main.h"
 #include "mapa.h"
 #include "eventos.h"
-#include "inimigo.h"
 
 #include "raylib.h"
 
-void DrawHealthBar(int x, int y, int vida);
-void DrawBarricadeHealthBar(int x, int y, int vida);
-void hud(void);
-bool menu_inicial();
-bool menu_pause(bool* paused);
+void drawBarraDeVidaBarricada(int x, int y, int vida);
+void drawBarraDeVidaInimigo(int x, int y, int vida);
+void DrawHud(recursos, tempoAtual);
 
-typedef struct
-{
+typedef struct {
     char map[ALTURA_GRID][LARGURA_GRID + 1];
     INIMIGO array_inimigos[MAX_INIMIGOS];
     JOGADOR player;

@@ -4,7 +4,6 @@
 #include "main.h"
 #include "eventos.h"
 #include "mapa.h"
-#include "inimigo.h"
 #include "load.h"
 
 char map[ALTURA_GRID][LARGURA_GRID + 1]; // +1 para o caractere nulo

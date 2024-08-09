@@ -2,7 +2,6 @@
 #include "main.h"
 #include "eventos.h"
 #include "mapa.h"
-#include "inimigo.h"
 #include "load.h"
 
 void moverInimigo(INIMIGO *inimigo, int objetivoX, int objetivoY, int *novoX, int *novoY)

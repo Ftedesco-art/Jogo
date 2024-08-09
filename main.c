@@ -7,17 +7,7 @@
 #include "mapa.h"
 #include "load.h"
 #include "hud.h"
-#include "inimigo.h"
 #include "eventos.h"
-
-
-int recursos;
-int numInimigos;
-int numFlechas;
-int numArqueiros;
-int numMinas;
-int numBarricadas;
-int tempoAtual = 0;
 
 int run()
 {
@@ -31,6 +21,8 @@ int run()
     SetSoundVolume(fxWav2, 0.1f);
 
     bool paused = false;
+    int recursos, tempoAtual = 0;
+    int numInimigos, numFlechas, numArqueiros, numMinas, numBarricadas;
 
     // Inicializa estruturas
     INIMIGO array_inimigos[MAX_INIMIGOS];
@@ -48,20 +40,31 @@ int run()
                        &numFlechas, &numInimigos, &recursos,
                        &tempoAtual);
     } else { // run() iniciou como um jogo salvo
-        carrega_jogo("jogo_salvo.bin", &info);
-        carrega_dados(map, array_inimigos, &player, &base, barricadas,
-               &numBarricadas, minas, &numMinas, arqueiros,
-               &numArqueiros, flechas, &numFlechas,
-               &numInimigos, &recursos, &tempoAtual);
+        // Resetar variáveis antes de carregar
+        reiniciarJogo(array_inimigos, &player, &base, barricadas,
+                       &numBarricadas, minas, &numMinas,
+                       arqueiros, &numArqueiros, flechas,
+                       &numFlechas, &numInimigos, &recursos,
+                       &tempoAtual);
+        if (!carrega_dados("jogo_salvo.bin", map, array_inimigos, &player, &base, barricadas,
+                        &numBarricadas, minas, &numMinas, arqueiros,
+                        &numArqueiros, flechas, &numFlechas,
+                        &numInimigos, &recursos, &tempoAtual)) {
+            printf("Falha ao carregar o jogo.\n");
+        }
     }
 
     // Carrega texturas
     CarregarTexturas();
 
     bool flagTrap = false;
-    int trapTimer = 0;
-    float velocity = 1; // Movimento a cada quantos segundos
+    float velocity = .1; // Movimento a cada quantos segundos
     int i;
+    int timerAcabou = 0;
+    int flagAcabou = 0;
+    int trapTimer = 0;
+    int ultimoDano = 0;
+
 
     while (!WindowShouldClose() && !paused)
     {
@@ -72,7 +75,7 @@ int run()
             paused = !paused;
         }
 
-        if (!paused) {
+        if (!paused && timerAcabou <= 0) {
             salva_dados(map, array_inimigos, &player, &base, barricadas, numBarricadas, minas,
                         numMinas, arqueiros, numArqueiros, flechas, numFlechas, numInimigos, recursos, tempoAtual);
             tempoAtual++;
@@ -103,7 +106,7 @@ int run()
 
             if (!flagTrap || trapTimer <= 0)
             {
-                velocity = 1;
+                velocity = .1;
                 flagTrap = false;
             }
             else
@@ -218,8 +221,9 @@ int run()
                     moverInimigo(&array_inimigos[j], base.coord.x, base.coord.y, &novosX[j], &novosY[j]);
                     array_inimigos[j].ultimoMovimento = tempoAtual; // Atualiza o tempo do último movimento
 
-                    // Se for uma barricada
                     char tile = map[novosY[j] - MAP_OFFSET][novosX[j]];
+
+                    // Se for uma barricada
                     if (tile == '1')
                     {
                         // Encontra a barricada correspondente
@@ -241,6 +245,7 @@ int run()
                             }
                         }
                     }
+
 
                     // Inimigo chegou à base 'S'
                     else if ((tile == 'S'))
@@ -278,14 +283,38 @@ int run()
                         array_inimigos[j].coord.y = novosY[j];
                         map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
                     }
+
+                    // Verifica se o inimigo colidiu com o jogador
+                    if (novosX[j] == player.coord.x && novosY[j] == player.coord.y)
+                    {
+                        // Verifica se o cooldown de dano foi respeitado
+                        if (tempoAtual - ultimoDano >= 60) // 1 segundo de cooldown
+                        {
+                            player.vidas--; // Decrementa a vida do jogador
+                            ultimoDano = tempoAtual; // Atualiza o tempo do último dano
+                        }
+                    }
                 }
             }
             // -------------------------------------- Inimigos -------------------------------------- //
+
+            if (player.vidas <= 0 || base.vidas <= 0) {
+                flagAcabou = 2; // Perdeu
+            }
+
+            else if (numInimigos <= 0 ) {
+                flagAcabou = 1; // Ganhou
+            }
         }
-        else {
+
+        else if (paused && timerAcabou <= 0) {
             if (!menu_pause(&paused)) {
                 break; // Apenas sair do loop se 'sair' for true
             }
+        }
+
+        else {
+
         }
 
         BeginDrawing();
@@ -293,42 +322,14 @@ int run()
         ClearBackground(RAYWHITE);
         DrawMap();
 
-        // Desenha os inimigos e suas barras de vida
-        for (int j = 0; j < numInimigos; j++)
-        {
-            DrawTexture(inimigotexture, array_inimigos[j].coord.x * LADO, array_inimigos[j].coord.y * LADO, WHITE);
-            drawBarraDeVidaInimigo(array_inimigos[j].coord.x, array_inimigos[j].coord.y, array_inimigos[j].vida);
-        }
-
-        // Desenha as barricadas e suas barras de vida
-        for (int k = 0; k < numBarricadas; k++)
-        {
-            DrawTexture(barricadatexture, barricadas[k].coord.x * LADO, barricadas[k].coord.y * LADO, WHITE);
-            drawBarraDeVidaBarricada(barricadas[k].coord.x, barricadas[k].coord.y, barricadas[k].vida);
-        }
-
-        // Desenha as flechas
-        for (int f = 0; f < numFlechas; f++)
-        {
-            if (flechas[f].ativa)
-            {
-                if(flechas[f].direcao.x == 1) {// Direita
-                    DrawTexture(flechadireitatexture, flechas[f].coord.x * LADO, flechas[f].coord.y * LADO, WHITE);
-                }
-                else if (flechas[f].direcao.x == -1) {// Esquerda
-                    DrawTexture(flechaesquerdatexture, flechas[f].coord.x * LADO, flechas[f].coord.y * LADO, WHITE);
-                }
-                else if (flechas[f].direcao.y == 1) {// Baixo
-                    DrawTexture(flechacimatexture, flechas[f].coord.x * LADO, flechas[f].coord.y * LADO, WHITE);
-                }
-                else if (flechas[f].direcao.y == -1) {// Cima
-                    DrawTexture(flechabaixotexture, flechas[f].coord.x * LADO, flechas[f].coord.y * LADO, WHITE);
-                }
-            }
-        }
-
         // Desenho da HUD
-        hud();
+        DrawHud(recursos, tempoAtual);
+
+        // Desenho de coisas gerais. Se houver flag de jogo ganho ou perdido, então sai do loop;
+        if(!DrawGeneral(flagAcabou, &timerAcabou, &flechas, numFlechas, &array_inimigos, numInimigos, &barricadas, numBarricadas)) {
+            break;
+        }
+
         DrawRectangle(player.coord.x * LADO, player.coord.y * LADO, LADO, LADO, RED);
 
         EndDrawing();
