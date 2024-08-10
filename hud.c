@@ -8,12 +8,27 @@
 // Definindo a fonte padrão
 Font defaultFont;
 
-void CarregaFont() {
-    defaultFont = LoadFont("C:/Windows/Fonts/FantasqueSansMono-Regular.otf");
-}
+int End(int flagAcabou, float *timerAcabou) {
+    // Tela de Game Over
+    if (flagAcabou == 2) {
+        (*timerAcabou)++;
+        if (*timerAcabou < 120) { // Mostra a tela por 2 segundos (120 frames a 60 FPS)
+            DrawTextEx(defaultFont, "VOCE PERDEU!", (Vector2){LARGURA / 2 - MeasureText("VOCE PERDEU!", 20) / 2, ALTURA / 2 - 10}, 20, 2, WHITE);
+        } else {
+            return 0;
+        }
+    }
 
-void DescarregaFont() {
-    UnloadFont(defaultFont); // Liberar a fonte
+    // Tela de Vitória
+    else if (flagAcabou == 1) {
+        (*timerAcabou)++;
+        if (*timerAcabou < 120) { // Mostra a tela por 2 segundos (120 frames a 60 FPS)
+            DrawTextEx(defaultFont, "VOCE VENCEU!", (Vector2){LARGURA / 2 - MeasureText("VOCE VENCEU!", 20) / 2, ALTURA / 2 - 10}, 20, 2, WHITE);
+        } else {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 void drawBarraDeVidaInimigo(int x, int y, int vida) {
@@ -36,12 +51,12 @@ void drawBarraDeVidaBarricada(int x, int y, int vida) {
     DrawRectangle(barX, barY, barWidth * vida / 5, barHeight, BLUE);
 }
 
-void DrawHud(int recursos, int tempoAtual) {
+void DrawHud(int recursos, int tempoAtual, BASE base, JOGADOR player) {
     int minutos = tempoAtual / 60;
     int segundos = tempoAtual % 60;
 
     // Desenho dos recursos
-    DrawTextEx(defaultFont, TextFormat("x %d", recursos), (Vector2){55, 80}, 20, 2, BLACK);
+    DrawTextEx(defaultFont, TextFormat("x%d", recursos), (Vector2){120, 70}, 20, 2, BLACK);
 
     // Desenho do tempo
     char tempoString[20];
@@ -50,17 +65,51 @@ void DrawHud(int recursos, int tempoAtual) {
     DrawTextEx(defaultFont, "Wave", (Vector2){15, 30}, 20, 2, BLACK);
 
     // TEXTURAS DA HUD
-    DrawTexture(vidahudtexture, 20, 40, WHITE);
-    DrawTexture(vidahudtexture, 40, 40, WHITE);
-    DrawTexture(vidahudtexture, 60, 40, WHITE);
+    switch(player.vidas) {
+        case 3:
+            DrawTexture(vidahudtexture, 05, 50, WHITE);
+            DrawTexture(vidahudtexture, 25, 50, WHITE);
+            DrawTexture(vidahudtexture, 45, 50, WHITE);
+            break;
+        case 2:
+            DrawTexture(vidahudtexture, 05, 50, WHITE);
+            DrawTexture(vidahudtexture, 25, 50, WHITE);
+            DrawTexture(vidahudtexture, 45, 50, DARKGRAY);
+            break;
+        case 1:
+            DrawTexture(vidahudtexture, 05, 50, WHITE);
+            DrawTexture(vidahudtexture, 25, 50, DARKGRAY);
+            DrawTexture(vidahudtexture, 45, 50, DARKGRAY);
+            break;
+    }
+
+        // TEXTURAS DA HUD
+    switch(base.vidas) {
+        case 3:
+            DrawTexture(vidabasehudtexture, 05, 75, WHITE);
+            DrawTexture(vidabasehudtexture, 25, 75, WHITE);
+            DrawTexture(vidabasehudtexture, 45, 75, WHITE);
+            break;
+        case 2:
+            DrawTexture(vidabasehudtexture, 05, 75, WHITE);
+            DrawTexture(vidabasehudtexture, 25, 75, WHITE);
+            DrawTexture(vidabasehudtexture, 45, 75, DARKGRAY);
+            break;
+        case 1:
+            DrawTexture(vidabasehudtexture, 05, 75, WHITE);
+            DrawTexture(vidabasehudtexture, 25, 75, DARKGRAY);
+            DrawTexture(vidabasehudtexture, 45, 75, DARKGRAY);
+            break;
+    }
+
     DrawTexture(bombahudtexture, 200, 20, WHITE);
     DrawTexture(barricadahudtexture, 300, 20, WHITE);
     DrawTexture(minahudtexture, 400, 20, WHITE);
     DrawTexture(arqueirohudtexture, 500, 20, WHITE);
-    DrawTexture(recursohudtexture, 30, 80, WHITE);
+    DrawTexture(recursohudtexture, 100, 70, WHITE);
 }
 
-int DrawGeneral(int flagAcabou, int *timerAcabou, FLECHA *flechas, int numFlechas,
+void DrawGeneral(FLECHA *flechas, int numFlechas,
                 INIMIGO *array_inimigos, int numInimigos, BARRICADA *barricadas, int numBarricadas) {
 
     // Desenha os inimigos e suas barras de vida
@@ -89,26 +138,12 @@ int DrawGeneral(int flagAcabou, int *timerAcabou, FLECHA *flechas, int numFlecha
             }
         }
     }
+}
 
-    // Tela de Game Over
-    if (flagAcabou == 2) {
-        (*timerAcabou)++;
-        if (*timerAcabou < 120) { // Mostra a tela por 2 segundos (120 frames a 60 FPS)
-            DrawTextEx(defaultFont, "VOCE PERDEU!", (Vector2){LARGURA / 2 - MeasureText("VOCE PERDEU!", 20) / 2, ALTURA / 2 - 10}, 20, 2, WHITE);
-        } else {
-            return 0;
-        }
-    }
+void CarregaFont() {
+    defaultFont = LoadFont("C:/Windows/Fonts/FantasqueSansMono-Regular.otf");
+}
 
-    // Tela de Vitória
-    else if (flagAcabou == 1) {
-        (*timerAcabou)++;
-        if (*timerAcabou < 120) { // Mostra a tela por 2 segundos (120 frames a 60 FPS)
-            DrawTextEx(defaultFont, "VOCE VENCEU!", (Vector2){LARGURA / 2 - MeasureText("VOCE VENCEU!", 20) / 2, ALTURA / 2 - 10}, 20, 2, WHITE);
-        } else {
-            return 0;
-        }
-    }
-
-    return 1;
+void DescarregaFont() {
+    UnloadFont(defaultFont); // Liberar a fonte
 }

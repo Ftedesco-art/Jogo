@@ -13,7 +13,9 @@ void CarregaFont();
 void DescarregaFont();
 void drawBarraDeVidaBarricada(int x, int y, int vida);
 void drawBarraDeVidaInimigo(int x, int y, int vida);
-void DrawHud(int recursos, int tempoAtual);
+void DrawHud(int recursos, int tempoAtual, BASE base, JOGADOR player);
+void DrawGeneral(FLECHA *flechas, int numFlechas,
+                INIMIGO *array_inimigos, int numInimigos, BARRICADA *barricadas, int numBarricadas);
 
 typedef struct {
     char map[ALTURA_GRID][LARGURA_GRID + 1];

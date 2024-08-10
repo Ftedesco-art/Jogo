@@ -1,5 +1,5 @@
 WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
-WH................HWH..................HW...........M......W
+W.................HWH..................HW...........M......W
 W...J..............W.....R..............W.WWWWWWWWWWWWWWWW.W
 W.................SW....................W.WH.............W.W
 W.WWWWWWWWWWWWW.WWWWWWWWWWWWWWWWWWWWWWWWW.W..............W.W
@@ -24,7 +24,7 @@ W.W.......WWWWWWWWWWHW.R.....................WWWWWWWWWWW.W.W
 W.W..................W...................................W.W
 WMW.......WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.WWWWWWWWWWW.W
 W.W......................................................W.W
-W.W......................................................W.W
+W.WH.....................................................W.W
 W.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.W
 WM..............................M...................M......W
 WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW

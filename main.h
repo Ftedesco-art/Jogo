@@ -6,6 +6,7 @@
 #define MAX_BARRICADAS 5
 #define MAX_FLECHAS 100
 #define MAX_MINAS 5
+#define MAX_BURACOS 30
 
 int podeMover(int x, int y, int dx, int dy);
 void move(int *x, int *y, int dx, int dy);

@@ -17,14 +17,15 @@ Texture2D flechacimatexture;
 Texture2D flechabaixotexture;
 Texture2D arqueirotexture;
 
-
 // TEXTURAS DE HUD
 Texture2D bombahudtexture;
 Texture2D vidahudtexture;
+Texture2D vidabasehudtexture;
 Texture2D barricadahudtexture;
 Texture2D recursohudtexture;
 Texture2D arqueirohudtexture;
 Texture2D minahudtexture;
+
 // TEXTURAS DE ITENS
 Texture2D bombatexture;
 
@@ -52,6 +53,7 @@ void CarregarTexturas()
     spawninimigotexture = LoadTexture("Texturas\\Spawninimigo.png");
     bombahudtexture = LoadTexture("Texturas\\Bombahud.png");
     vidahudtexture = LoadTexture("Texturas\\Vida.png");
+    vidabasehudtexture = LoadTexture("Texturas\\VidaBase.png");
     barricadahudtexture = LoadTexture("Texturas\\Barricadahud.png");
     bombatexture = LoadTexture("Texturas\\Bomba.png");
     explosaotexture = LoadTexture("Texturas\\Explosao.png");
@@ -77,6 +79,7 @@ void DescarregarTexturas()
     // TEXTURAS DE HUD
     UnloadTexture(bombahudtexture);
     UnloadTexture(vidahudtexture);
+    UnloadTexture(vidabasehudtexture);
     UnloadTexture(barricadahudtexture);
     UnloadTexture(recursohudtexture);
     UnloadTexture(arqueirohudtexture);

@@ -61,4 +61,10 @@ typedef struct
     double ultimoMovimento;
 } INIMIGO;
 
+typedef struct
+{
+    POSN coord;
+    int id;
+} BURACO;
+
 #endif

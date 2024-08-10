@@ -15,8 +15,8 @@ int run()
 
     // Inicialização dos sons
     InitAudioDevice();
-    Sound fxWav = LoadSound("Sons\\Buraco.ogg");
-    Sound fxWav2 = LoadSound("Sons\\Barricada.ogg");
+    Sound fxWav = LoadSound("Sons/Buraco.ogg");
+    Sound fxWav2 = LoadSound("Sons/Barricada.ogg");
     SetSoundVolume(fxWav, 0.1f);
     SetSoundVolume(fxWav2, 0.1f);
 
@@ -32,6 +32,7 @@ int run()
     MINA minas[MAX_MINAS];
     ARQUEIRO arqueiros[MAX_ARQUEIROS];
     FLECHA flechas[MAX_FLECHAS];
+    BURACO buracos[MAX_BURACOS];
 
     // Resetar variáveis antes de carregar
     reiniciarJogo(array_inimigos, &player, &base, barricadas,
@@ -56,11 +57,11 @@ int run()
     bool flagTrap = false;
     float velocity = .1; // Movimento a cada quantos segundos
     int i;
-    int timerAcabou = 0;
     int flagAcabou = 0;
     int trapTimer = 0;
     int ultimoDano = 0;
-
+    int timerBuraco = 0;
+    int timerAcabou = 0;
 
     while (!WindowShouldClose() && !paused)
     {
@@ -102,7 +103,7 @@ int run()
 
             if (!flagTrap || trapTimer <= 0)
             {
-                velocity = 1;
+                velocity = .1;
                 flagTrap = false;
             }
             else
@@ -110,24 +111,52 @@ int run()
                 trapTimer--;
             }
 
+            int id = 0;
+            int contadorId = 0;
+
+            // -------------------------------------- Buracos -------------------------------------- //
+            for (int mapY = 0; mapY < ALTURA_GRID + MAP_OFFSET; mapY++)
+            {
+                for (int mapX = 0; mapX < LARGURA_GRID; mapX++)
+                {
+                    if(map[mapY][mapX] == 'H') {
+                        buracos[contadorId].coord.x = mapX;
+                        buracos[contadorId].coord.y = mapY;
+                        buracos[contadorId].id = id;
+
+                        contadorId++;
+                        if (contadorId % 2 == 0) {
+                            id++;
+                        }
+                    }
+                }
+            }
+            // -------------------------------------- Buracos -------------------------------------- //
+
             switch (map[yPersonagem][xPersonagem]) {
                 case 'R': // Verifica se o jogador encostou no recurso
                     recursos++;
-                    map[yPersonagem][xPersonagem] = '.'; // Remove o recurso do mapa
+                    map[yPersonagem][xPersonagem] = '.';
                     break;
 
                 case 'H': // Buracos
-                    PlaySound(fxWav);
+                    if (timerBuraco <= 0) {
+                        entraBuraco(&player.coord.x, &player.coord.y, buracos);
+                        PlaySound(fxWav);
+                        timerBuraco = 120;
+                    }
                     break;
 
                 case 'T': // Armadilhas
-                    velocity = 0.04;
-                    trapTimer = 120;
+                    velocity = 0.15;
+                    trapTimer = 180;
                     flagTrap = true;
                     break;
                 default:
                     break;
             }
+            timerBuraco--;
+
 
             // -------------------------------------- Barricadas -------------------------------------- //
             if (recursos >= 2 && map[yPersonagem][xPersonagem] == '.' && IsKeyPressed('E')
@@ -137,7 +166,7 @@ int run()
                 map[yPersonagem][xPersonagem] = '1';
                 barricadas[numBarricadas].coord.x = xPersonagem;
                 barricadas[numBarricadas].coord.y = yPersonagem + MAP_OFFSET;
-                barricadas[numBarricadas].vida = 5; // Inicializa a vida da barricada
+                barricadas[numBarricadas].vida = 5;
                 barricadas[numBarricadas].ultimoDano = tempoAtual; // Inicializa o tempo do último dano
                 numBarricadas++;
                 recursos -= 2;
@@ -167,7 +196,7 @@ int run()
                 recursos -= 6;
             }
 
-            // Produzir recursos nas minas a cada 8 segundos
+            // Produzir recursos nas minas a cada 8 segundos - trocar por variável para os upgrades
             for (int m = 0; m < numMinas; m++)
             {
                 if (tempoAtual - minas[m].ultimoRecurso >= 8 * 60)
@@ -194,7 +223,7 @@ int run()
             // Arqueiros atirando flechas
             for (int a = 0; a < numArqueiros; a++)
             {
-                if (tempoAtual - arqueiros[a].ultimoTiro >= 2 * 60) // Padrão: 2
+                if (tempoAtual - arqueiros[a].ultimoTiro >= 2 * 60) // Padrão: 2 - trocar por variável para os upgrades
                 {
                     atirarFlecha(&arqueiros[a], flechas, &numFlechas, array_inimigos, numInimigos);
                     arqueiros[a].ultimoTiro = tempoAtual; // Atualiza o tempo do último tiro
@@ -219,53 +248,6 @@ int run()
 
                     char tile = map[novosY[j] - MAP_OFFSET][novosX[j]];
 
-                    switch (tile)
-                    {
-                        case '1': // Inimigo encontrou uma bomba
-                            for (int k = 0; k < numBarricadas; k++)
-                            {
-                                if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
-                                {
-                                    barricadas[k].vida--;
-                                    if (barricadas[k].vida <= 0)
-                                    {
-                                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                                        for (int l = k; l < numBarricadas - 1; l++)
-                                        {
-                                            barricadas[l] = barricadas[l + 1];
-                                        }
-                                        numBarricadas--;
-                                    }
-                                    break;
-                                }
-                            }
-                            break;
-
-                        case 'S': // Inimigo chegou à base
-                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                            removerInimigo(array_inimigos, &numInimigos, j);
-                            j--;
-                            base.vidas--;
-                            break;
-
-                        case '2': // Inimigo encontrou uma bomba
-                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                            removerInimigo(array_inimigos, &numInimigos, j);
-                            j--;
-                            break;
-
-                        case '.': // Movimento normal
-                            map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
-                            array_inimigos[j].coord.x = novosX[j];
-                            array_inimigos[j].coord.y = novosY[j];
-                            map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
-                            break;
-
-                        default:
-                            break;
-                    }
-
                     // Verifica se o inimigo colidiu com o jogador
                     if (novosX[j] == player.coord.x && novosY[j] == player.coord.y)
                     {
@@ -277,27 +259,92 @@ int run()
                         }
                     }
 
-                    // Inimigo morreu por causa da vida zerada
+                    // Inimigo morreu por vida zerada
                     if (array_inimigos[j].vida <= 0)
                     {
+
                         map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
                         removerInimigo(array_inimigos, &numInimigos, j);
-                        j--; // Ajusta o índice após remoção
+                        j--;
+                    }
+
+                    else {
+                        switch (tile) {
+                            case '1': // Inimigo encontrou uma barricada
+                                for (int k = 0; k < numBarricadas; k++)
+                                {
+                                    if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
+                                    {
+                                        barricadas[k].vida--;
+                                        if (barricadas[k].vida <= 0)
+                                        {
+                                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
+                                            for (int l = k; l < numBarricadas - 1; l++)
+                                            {
+                                                barricadas[l] = barricadas[l + 1];
+                                            }
+                                            numBarricadas--;
+                                        }
+                                        break;
+                                    }
+                                }
+                                break;
+
+                            case 'S': // Inimigo chegou à base
+                                map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                                base.vidas--;
+                                removerInimigo(array_inimigos, &numInimigos, j);
+                                j--;
+                                break;
+
+                            case '2': // Inimigo encontrou uma bomba
+                                map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
+                                map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                                removerInimigo(array_inimigos, &numInimigos, j);
+                                j--;
+                                break;
+
+                            case '.': // Movimento normal
+                                map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+                                array_inimigos[j].coord.x = novosX[j];
+                                array_inimigos[j].coord.y = novosY[j];
+                                map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
+                                break;
+                            case '4': // Inimigo encontrou um arqueiro
+                                for (int k = 0; k < numArqueiros; k++)
+                                {
+                                    if (arqueiros[k].coord.x == novosX[j] && arqueiros[k].coord.y == novosY[j])
+                                    {
+                                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
+                                        for (int l = k; l < numArqueiros - 1; l++)
+                                        {
+                                            arqueiros[l] = arqueiros[l + 1];
+                                        }
+                                        numArqueiros--;
+                                        break;
+                                    }
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
                     }
                 }
             }
             // -------------------------------------- Inimigos -------------------------------------- //
 
+
             if (player.vidas <= 0 || base.vidas <= 0) {
                 flagAcabou = 2; // Perdeu
             }
 
-            else if (numInimigos <= 0 ) {
+            else if (numInimigos <= 0) {
                 flagAcabou = 1; // Ganhou
             }
         }
 
-        else if (paused && timerAcabou <= 0) {
+        else if (paused && flagAcabou <= 0) {
             if (!menu_pause(&paused)) {
                 break; // Apenas sair do loop se 'sair' for true
             }
@@ -313,10 +360,12 @@ int run()
         DrawMap();
 
         // Desenho da HUD
-        DrawHud(recursos, tempoAtual);
+        DrawHud(recursos, tempoAtual, base, player);
 
-        // Desenho de coisas gerais. Se houver flag de jogo ganho ou perdido, então sai do loop;
-        if(!DrawGeneral(flagAcabou, &timerAcabou, &flechas, numFlechas, &array_inimigos, numInimigos, &barricadas, numBarricadas)) {
+        // Desenho de coisas gerais
+        DrawGeneral(&flechas, numFlechas, &array_inimigos, numInimigos, &barricadas, numBarricadas);
+
+        if(!End(flagAcabou, &timerAcabou)) {
             break;
         }
 

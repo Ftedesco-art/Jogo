@@ -35,7 +35,7 @@ void LoadMap(const char *filename)
 
 void DrawMap()
 {
-    for (int y = 0; y < ALTURA_GRID + 6; y++)   // Adiciona 6 linhas em branco
+    for (int y = 0; y < ALTURA_GRID + MAP_OFFSET; y++)   // Adiciona 6 linhas em branco
     {
         for (int x = 0; x < LARGURA_GRID; x++)
         {
@@ -68,9 +68,6 @@ void DrawMap()
                     break;
                 case 'J':
                     texture = spawntexture;
-                    break;
-                case 'K':
-                    texture = spawninimigotexture;
                     break;
                 case 'M':
                     texture = inimigotexture;

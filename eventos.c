@@ -64,6 +64,7 @@ void salva_dados(char map[ALTURA_GRID][LARGURA_GRID + 1], INIMIGO array_inimigos
                   ARQUEIRO arqueiros[MAX_ARQUEIROS], int numArqueiros,
                   FLECHA flechas[MAX_FLECHAS], int numFlechas,
                   int numInimigos, int recursos, int tempo) {
+
     // Copia o mapa
     memcpy(info.map, map, sizeof(info.map));
 
@@ -167,7 +168,7 @@ bool menu_inicial() {
 
     // Tempo de entrada no menu
     float entrou = GetTime();
-    float cooldown = 0.5f; // 0.5 segundos
+    float cooldown = 0.05f; // 0.05 segundos
 
     int select = 1;
     Color c1 = BLACK;
@@ -413,14 +414,14 @@ void atirarFlecha(ARQUEIRO *arqueiro, FLECHA flechas[], int *numFlechas, INIMIGO
         int distancia = abs(dx) + abs(dy);
 
         // Verifica se o inimigo está dentro do alcance de 5 tiles
-        if (distancia <= 5)
+        if (distancia <= 5 && (dx != 0 || dy != 0)) // Garantir que dx e dy não sejam ambos zero
         {
             FLECHA *flecha = &flechas[*numFlechas];
             flecha->coord.x = arqueiro->coord.x;
             flecha->coord.y = arqueiro->coord.y;
             flecha->ativa = 1;
-            flecha->direcao.x = (dx != 0) ? dx / abs(dx) : 0;
-            flecha->direcao.y = (dy != 0) ? dy / abs(dy) : 0;
+            flecha->direcao.x = (dx != 0) ? dx / distancia : 0; // Use a distância total
+            flecha->direcao.y = (dy != 0) ? dy / distancia : 0; // Use a distância total
             (*numFlechas)++;
             arqueiro->ultimoTiro = GetTime();
         }
@@ -453,6 +454,26 @@ void move(int *x, int *y, int dx, int dy)
     {
         *x += dx;
         *y += dy;
+    }
+}
+
+void entraBuraco(int *xPersonagem, int *yPersonagem, BURACO buracos[]) {
+    int idBuscado = -1;
+    // Primeiro loop para encontrar o buraco correspondente à posição do personagem
+    for (int i = 0; i < MAX_BURACOS; i++) {
+        if (buracos[i].coord.x == *xPersonagem && buracos[i].coord.y == *yPersonagem - MAP_OFFSET) {
+            idBuscado = buracos[i].id;
+            break;
+        }
+    }
+
+    // Verifica se idBuscado foi encontrado
+    for (int i = 0; i < MAX_BURACOS; i++) {
+        if (buracos[i].id == idBuscado && (buracos[i].coord.x != *xPersonagem || buracos[i].coord.y != *yPersonagem - MAP_OFFSET)) {
+            *xPersonagem = buracos[i].coord.x;
+            *yPersonagem = buracos[i].coord.y + MAP_OFFSET;
+            break;
+        }
     }
 }
 
