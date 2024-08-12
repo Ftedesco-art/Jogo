@@ -24,20 +24,30 @@ typedef struct
 typedef struct
 {
     POSN coord;
-    int vida;
+    int vidaMax;
+    int vidaAtual;
     double ultimoDano; // Tempo do último dano recebido
 } BARRICADA;
 
 typedef struct
 {
     POSN coord;
+    int flagDuracao;
+    int timerBomba;
+} BOMBA;
+
+typedef struct
+{
+    POSN coord;
     double ultimoRecurso; // Tempo do último recurso produzido
+    int freq;
 } MINA;
 
 typedef struct
 {
     POSN coord;
     double ultimoTiro; // Tempo do último tiro
+    float freq;
 } ARQUEIRO;
 
 typedef struct
@@ -66,5 +76,11 @@ typedef struct
     POSN coord;
     int id;
 } BURACO;
+
+typedef struct
+{
+    POSN spawn;
+    int qtddInimigos;
+} ROUND;
 
 #endif

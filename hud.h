@@ -11,7 +11,7 @@ extern Font defaultFont;
 
 void CarregaFont();
 void DescarregaFont();
-void drawBarraDeVidaBarricada(int x, int y, int vida);
+void drawBarraDeVidaBarricada(int x, int y, int vidaAtual, int vidaMax);
 void drawBarraDeVidaInimigo(int x, int y, int vida);
 void DrawHud(int recursos, int tempoAtual, BASE base, JOGADOR player);
 void DrawGeneral(FLECHA *flechas, int numFlechas,
@@ -26,6 +26,7 @@ typedef struct {
     MINA minas[MAX_MINAS];
     ARQUEIRO arqueiros[MAX_ARQUEIROS];
     FLECHA flechas[MAX_FLECHAS];
+    BOMBA bombas[MAX_BOMBAS];
     double tempo;
     int recursos;
     int numInimigos;
@@ -33,6 +34,7 @@ typedef struct {
     int numArqueiros;
     int numMinas;
     int numBarricadas;
+    int numBombas;
     int flag;
 } INFO;
 

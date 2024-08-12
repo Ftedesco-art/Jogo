@@ -22,7 +22,7 @@ int run()
 
     bool paused = false;
     int recursos, tempoAtual = 0;
-    int numInimigos, numFlechas, numArqueiros, numMinas, numBarricadas;
+    int numInimigos, numFlechas, numArqueiros, numMinas, numBarricadas, numBombas;
 
     // Inicializa estruturas
     INIMIGO array_inimigos[MAX_INIMIGOS];
@@ -33,19 +33,21 @@ int run()
     ARQUEIRO arqueiros[MAX_ARQUEIROS];
     FLECHA flechas[MAX_FLECHAS];
     BURACO buracos[MAX_BURACOS];
+    BOMBA bombas[MAX_BOMBAS];
+    ROUND info_rounds[MAX_ROUNDS];
 
     // Resetar variáveis antes de carregar
     reiniciarJogo(array_inimigos, &player, &base, barricadas,
                    &numBarricadas, minas, &numMinas,
                    arqueiros, &numArqueiros, flechas,
                    &numFlechas, &numInimigos, &recursos,
-                   &tempoAtual);
+                   &tempoAtual, &numBombas, &bombas, info_rounds);
 
     if (info.flag == 1) { // Jogo salvo
         if (!carrega_dados("jogo_salvo.bin", map, array_inimigos, &player, &base, barricadas,
                         &numBarricadas, minas, &numMinas, arqueiros,
                         &numArqueiros, flechas, &numFlechas,
-                        &numInimigos, &recursos, &tempoAtual)) {
+                        &numInimigos, &recursos, &tempoAtual, &numBombas, &bombas)) {
             printf("Falha ao carregar o jogo.\n");
         }
     }
@@ -62,6 +64,16 @@ int run()
     int ultimoDano = 0;
     int timerBuraco = 0;
     int timerAcabou = 0;
+    int flagMenu = 0;
+    int freqInimigos = 180;
+    int round = 0;
+    int flagCriacao = 0;
+
+    achaSpawnInimigos(info_rounds);
+
+    info_rounds[0].qtddInimigos = 7;
+    info_rounds[1].qtddInimigos = 10;
+    info_rounds[2].qtddInimigos = 15;
 
     while (!WindowShouldClose() && !paused)
     {
@@ -74,7 +86,7 @@ int run()
 
         if (!paused && timerAcabou <= 0) {
             salva_dados(map, array_inimigos, &player, &base, barricadas, numBarricadas, minas,
-                        numMinas, arqueiros, numArqueiros, flechas, numFlechas, numInimigos, recursos, tempoAtual);
+                        numMinas, arqueiros, numArqueiros, flechas, numFlechas, numInimigos, recursos, tempoAtual, numBombas, bombas);
             tempoAtual++;
 
             // Movimentação do personagem
@@ -101,9 +113,20 @@ int run()
             int xPersonagem = player.coord.x;
             int yPersonagem = player.coord.y - MAP_OFFSET;
 
+            // Verifica se o inimigo colidiu com o jogador
+            if (map[yPersonagem][xPersonagem] == 'M')
+            {
+                // Verifica se o cooldown de dano foi respeitado
+                if (tempoAtual - ultimoDano >= 60) // 1 segundo de cooldown
+                {
+                    player.vidas--; // Decrementa a vida do jogador
+                    ultimoDano = tempoAtual; // Atualiza o tempo do último dano
+                }
+            }
+
             if (!flagTrap || trapTimer <= 0)
             {
-                velocity = .1;
+                velocity = 1;
                 flagTrap = false;
             }
             else
@@ -119,7 +142,7 @@ int run()
             {
                 for (int mapX = 0; mapX < LARGURA_GRID; mapX++)
                 {
-                    if(map[mapY][mapX] == 'H') {
+                    if(map[mapY][mapX] == 'H' && contadorId < MAX_BURACOS) {
                         buracos[contadorId].coord.x = mapX;
                         buracos[contadorId].coord.y = mapY;
                         buracos[contadorId].id = id;
@@ -148,7 +171,7 @@ int run()
                     break;
 
                 case 'T': // Armadilhas
-                    velocity = 0.15;
+                    velocity = 1;
                     trapTimer = 180;
                     flagTrap = true;
                     break;
@@ -166,7 +189,8 @@ int run()
                 map[yPersonagem][xPersonagem] = '1';
                 barricadas[numBarricadas].coord.x = xPersonagem;
                 barricadas[numBarricadas].coord.y = yPersonagem + MAP_OFFSET;
-                barricadas[numBarricadas].vida = 5;
+                barricadas[numBarricadas].vidaAtual = 5;
+                barricadas[numBarricadas].vidaMax = 5;
                 barricadas[numBarricadas].ultimoDano = tempoAtual; // Inicializa o tempo do último dano
                 numBarricadas++;
                 recursos -= 2;
@@ -179,7 +203,20 @@ int run()
             {
                 PlaySound(fxWav2);
                 map[yPersonagem][xPersonagem] = '2';
+                bombas[numBombas].coord.x = xPersonagem;
+                bombas[numBombas].coord.y = yPersonagem + MAP_OFFSET;
+                bombas[numBombas].flagDuracao = 0;
+                numBombas++;
                 recursos -= 2;
+            }
+
+            for (i = 0; i < numBombas; i++) {
+                if (bombas[i].flagDuracao == 1) {
+                   bombas[i].timerBomba++;
+                   if (bombas[i].timerBomba >= 300) { // Timer em segundos * 60
+                        map[bombas[i].coord.y - MAP_OFFSET][bombas[i].coord.x] = '.';
+                    }
+                }
             }
             // -------------------------------------- Bombas -------------------------------------- //
 
@@ -191,15 +228,16 @@ int run()
                 map[yPersonagem][xPersonagem] = '3';
                 minas[numMinas].coord.x = xPersonagem;
                 minas[numMinas].coord.y = yPersonagem + MAP_OFFSET;
+                minas[numMinas].freq = 8;
                 minas[numMinas].ultimoRecurso = tempoAtual; // Inicializa o tempo do último recurso produzido
                 numMinas++;
                 recursos -= 6;
             }
 
-            // Produzir recursos nas minas a cada 8 segundos - trocar por variável para os upgrades
+            // Produzir recursos nas minas a um periodo (freq) de segundos
             for (int m = 0; m < numMinas; m++)
             {
-                if (tempoAtual - minas[m].ultimoRecurso >= 8 * 60)
+                if (tempoAtual - minas[m].ultimoRecurso >= minas[m].freq * 60)
                 {
                     recursos++;
                     minas[m].ultimoRecurso = tempoAtual;
@@ -215,6 +253,7 @@ int run()
                 map[yPersonagem][xPersonagem] = '4';
                 arqueiros[numArqueiros].coord.x = xPersonagem;
                 arqueiros[numArqueiros].coord.y = yPersonagem + MAP_OFFSET;
+                arqueiros[numArqueiros].freq = 2;
                 arqueiros[numArqueiros].ultimoTiro = tempoAtual; // Inicializa o tempo do último tiro
                 numArqueiros++;
                 recursos -= 4;
@@ -223,7 +262,7 @@ int run()
             // Arqueiros atirando flechas
             for (int a = 0; a < numArqueiros; a++)
             {
-                if (tempoAtual - arqueiros[a].ultimoTiro >= 2 * 60) // Padrão: 2 - trocar por variável para os upgrades
+                if (tempoAtual - arqueiros[a].ultimoTiro >= arqueiros[a].freq * 60) // Padrão: 2, upgrade: 1
                 {
                     atirarFlecha(&arqueiros[a], flechas, &numFlechas, array_inimigos, numInimigos);
                     arqueiros[a].ultimoTiro = tempoAtual; // Atualiza o tempo do último tiro
@@ -238,6 +277,18 @@ int run()
             // -------------------------------------- Arqueiros -------------------------------------- //
 
             // -------------------------------------- Inimigos -------------------------------------- //
+            if(freqInimigos >= 180 && flagCriacao == 1) {
+                cria_inimigo(info_rounds[round].spawn.x, info_rounds[round].spawn.y, array_inimigos, &numInimigos);
+
+                freqInimigos = 0;
+                info_rounds[round].qtddInimigos--;
+
+                if (info_rounds[round].qtddInimigos == 0) {
+                    flagCriacao = 0;
+                }
+            }
+            freqInimigos++;
+
             for (int j = 0; j < numInimigos; j++)
             {
                 int tempoDesdeUltimoMovimento = tempoAtual - array_inimigos[j].ultimoMovimento;
@@ -247,17 +298,6 @@ int run()
                     array_inimigos[j].ultimoMovimento = tempoAtual; // Atualiza o tempo do último movimento
 
                     char tile = map[novosY[j] - MAP_OFFSET][novosX[j]];
-
-                    // Verifica se o inimigo colidiu com o jogador
-                    if (novosX[j] == player.coord.x && novosY[j] == player.coord.y)
-                    {
-                        // Verifica se o cooldown de dano foi respeitado
-                        if (tempoAtual - ultimoDano >= 60) // 1 segundo de cooldown
-                        {
-                            player.vidas--; // Decrementa a vida do jogador
-                            ultimoDano = tempoAtual; // Atualiza o tempo do último dano
-                        }
-                    }
 
                     // Inimigo morreu por vida zerada
                     if (array_inimigos[j].vida <= 0)
@@ -271,17 +311,17 @@ int run()
                     else {
                         switch (tile) {
                             case '1': // Inimigo encontrou uma barricada
-                                for (int k = 0; k < numBarricadas; k++)
+                                for (i = 0; i < numBarricadas; i++)
                                 {
-                                    if (barricadas[k].coord.x == novosX[j] && barricadas[k].coord.y == novosY[j])
+                                    if (barricadas[i].coord.x == novosX[j] && barricadas[i].coord.y == novosY[j])
                                     {
-                                        barricadas[k].vida--;
-                                        if (barricadas[k].vida <= 0)
+                                        barricadas[i].vidaAtual--;
+                                        if (barricadas[i].vidaAtual <= 0)
                                         {
-                                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                                            for (int l = k; l < numBarricadas - 1; l++)
+                                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição da barricada no mapa para '.'
+                                            for (int k = i; k < numBarricadas - 1; k++)
                                             {
-                                                barricadas[l] = barricadas[l + 1];
+                                                barricadas[k] = barricadas[k + 1];
                                             }
                                             numBarricadas--;
                                         }
@@ -296,29 +336,39 @@ int run()
                                 removerInimigo(array_inimigos, &numInimigos, j);
                                 j--;
                                 break;
-
                             case '2': // Inimigo encontrou uma bomba
-                                map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
                                 map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
+
+                                for (i = 0; i < numBombas; i++) {
+                                    if (bombas[i].coord.x == novosX[j] && bombas[i].coord.y == novosY[j]) {
+                                        if (bombas[i].flagDuracao == 0) {
+                                            map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição da bomba no mapa para '.'
+
+                                            for (int k = i; k < numBombas - 1; k++) {
+                                                bombas[k] = bombas[k + 1]; // Move as bombas para preencher a posição
+                                            }
+                                        numBombas--; // Decrementa o número de bombas
+                                        }
+                                    }
+                                }
                                 removerInimigo(array_inimigos, &numInimigos, j);
                                 j--;
                                 break;
-
                             case '.': // Movimento normal
                                 map[array_inimigos[j].coord.y - MAP_OFFSET][array_inimigos[j].coord.x] = '.'; // Limpa a posição antiga no mapa
                                 array_inimigos[j].coord.x = novosX[j];
                                 array_inimigos[j].coord.y = novosY[j];
-                                map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa
+                                map[novosY[j] - MAP_OFFSET][novosX[j]] = 'M'; // Atualiza a posição no mapa para 'M'
                                 break;
                             case '4': // Inimigo encontrou um arqueiro
-                                for (int k = 0; k < numArqueiros; k++)
+                                for (i = 0; i < numArqueiros; i++)
                                 {
-                                    if (arqueiros[k].coord.x == novosX[j] && arqueiros[k].coord.y == novosY[j])
+                                    if (arqueiros[i].coord.x == novosX[j] && arqueiros[i].coord.y == novosY[j])
                                     {
-                                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição no mapa para '.'
-                                        for (int l = k; l < numArqueiros - 1; l++)
+                                        map[novosY[j] - MAP_OFFSET][novosX[j]] = '.'; // Atualiza a posição do arqueiro no mapa para '.'
+                                        for (int k = i; k < numArqueiros - 1; k++)
                                         {
-                                            arqueiros[l] = arqueiros[l + 1];
+                                            arqueiros[k] = arqueiros[k + 1];
                                         }
                                         numArqueiros--;
                                         break;
@@ -334,13 +384,17 @@ int run()
             }
             // -------------------------------------- Inimigos -------------------------------------- //
 
-
             if (player.vidas <= 0 || base.vidas <= 0) {
                 flagAcabou = 2; // Perdeu
             }
 
-            else if (numInimigos <= 0) {
+            else if (numInimigos <= 0 && round == 2) {
                 flagAcabou = 1; // Ganhou
+            }
+
+            else if (numInimigos <= 0 && round < MAX_ROUNDS - 1) {
+                round++;
+                flagCriacao = 1;
             }
         }
 
@@ -358,6 +412,40 @@ int run()
 
         ClearBackground(RAYWHITE);
         DrawMap();
+
+        int xClique, yClique, xCliqueNovo, yCliqueNovo;
+
+        // Verifica se o botão do mouse foi pressionado - primeira vez
+        if (!flagMenu) {
+            if (IsMouseButtonPressed(0)) {
+                xClique = GetMouseX() / 20; // Função para obter a coordenada X do mouse
+                yClique = GetMouseY() / 20 - MAP_OFFSET; // Função para obter a coordenada Y do mouse
+
+                char tile = map[yClique][xClique];
+
+                if (tile == '1' || tile == '2' || tile == '3' || tile == '4') {
+                    flagMenu = 1; // Marca que o menu está aberto
+                }
+            }
+        } else {
+            if (IsMouseButtonPressed(0)) {
+                xCliqueNovo = GetMouseX(); // Função para obter a coordenada X do mouse
+                yCliqueNovo = GetMouseY(); // Função para obter a coordenada Y do mouse
+
+                // Chama a função de upgradeMenu e verifica se o menu deve ser fechado
+                int resultado = upgradeMenu(xClique, yClique, xCliqueNovo, yCliqueNovo, numBarricadas, numBombas, numMinas, numArqueiros, barricadas, bombas, minas, arqueiros, &recursos);
+
+                if (resultado == 0) {
+                    flagMenu = 0; // Fecha o menu se upgradeMenu retornar 0
+                }
+            }
+        }
+
+        // Desenho do menu se estiver aberto
+        if (flagMenu) {
+            DrawRectangle(1000, 20, 80, 80, RED);   // Botão de fechar
+            DrawRectangle(1080, 20, 80, 80, GREEN); // Botão de compra
+        }
 
         // Desenho da HUD
         DrawHud(recursos, tempoAtual, base, player);

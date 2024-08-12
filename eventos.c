@@ -12,10 +12,11 @@ void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
                    int *numMinas, ARQUEIRO arqueiros[MAX_ARQUEIROS],
                    int *numArqueiros, FLECHA flechas[MAX_FLECHAS],
                    int *numFlechas, int *numInimigos, int *recursos,
-                   int *tempo) {
+                   int *tempo, int *numBombas, BOMBA bombas[MAX_BOMBAS], ROUND info_rounds[MAX_ROUNDS]) {
+    int i;
 
     // Carrega o mapa novamente
-    LoadMap("mapa1.txt");
+    LoadMap("mapa2.txt");
 
     // Reinicia os contadores
     *numInimigos = 0;
@@ -23,6 +24,7 @@ void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
     *numMinas = 0;
     *numArqueiros = 0;
     *numFlechas = 0;
+    *numBombas = 0;
     *recursos = 5;
 
     // Zera as estruturas
@@ -31,6 +33,7 @@ void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
     memset(minas, 0, sizeof(MINA) * MAX_MINAS);
     memset(arqueiros, 0, sizeof(ARQUEIRO) * MAX_ARQUEIROS);
     memset(array_inimigos, 0, sizeof(INIMIGO) * MAX_INIMIGOS);
+    memset(bombas, 0, sizeof(BOMBA) * MAX_BOMBAS);
 
     // Inicializa inimigos, base e player
     for (int mapY = 0; mapY < ALTURA_GRID; mapY++) {
@@ -51,6 +54,11 @@ void reiniciarJogo(INIMIGO array_inimigos[MAX_INIMIGOS], JOGADOR *player,
                 player->coord.x = mapX;
                 player->coord.y = mapY + MAP_OFFSET;
                 player->vidas = 3;
+            } else if (map[mapY][mapX] == 'K') {
+                for (i = 0; i < MAX_ROUNDS; i++) {
+                    info_rounds[i].spawn.x = mapX;
+                    info_rounds[i].spawn.y = mapY + MAP_OFFSET;
+                }
             }
         }
     }
@@ -63,7 +71,7 @@ void salva_dados(char map[ALTURA_GRID][LARGURA_GRID + 1], INIMIGO array_inimigos
                   int numBarricadas, MINA minas[MAX_MINAS], int numMinas,
                   ARQUEIRO arqueiros[MAX_ARQUEIROS], int numArqueiros,
                   FLECHA flechas[MAX_FLECHAS], int numFlechas,
-                  int numInimigos, int recursos, int tempo) {
+                  int numInimigos, int recursos, int tempo, int numBombas, BOMBA bombas[MAX_BOMBAS]) {
 
     // Copia o mapa
     memcpy(info.map, map, sizeof(info.map));
@@ -76,6 +84,7 @@ void salva_dados(char map[ALTURA_GRID][LARGURA_GRID + 1], INIMIGO array_inimigos
     memcpy(info.flechas, flechas, sizeof(info.flechas));
     memcpy(info.minas, minas, sizeof(info.minas));
     memcpy(info.arqueiros, arqueiros, sizeof(info.arqueiros));
+    memcpy(info.bombas, bombas, sizeof(info.bombas));
 
     // Copia todas as informações de jogador e base
     info.player = *player;
@@ -88,6 +97,7 @@ void salva_dados(char map[ALTURA_GRID][LARGURA_GRID + 1], INIMIGO array_inimigos
     info.numFlechas = numFlechas;
     info.numInimigos = numInimigos;
     info.numMinas = numMinas;
+    info.numBombas = numBombas;
     info.recursos = recursos;
 
     // Flag de que são dados salvos
@@ -101,7 +111,7 @@ int carrega_dados(const char* arquivo, char map[ALTURA_GRID][LARGURA_GRID + 1],
                   int *numMinas, ARQUEIRO arqueiros[MAX_ARQUEIROS],
                   int *numArqueiros, FLECHA flechas[MAX_FLECHAS],
                   int *numFlechas, int *numInimigos, int *recursos,
-                  int *tempo) {
+                  int *tempo, int *numBombas, BOMBA bombas[MAX_BOMBAS]) {
     FILE *ponteiro = fopen(arquivo, "rb");
     if (ponteiro == NULL) {
         printf("\n\nErro na abertura do arquivo - leitura\n\n");
@@ -136,6 +146,9 @@ int carrega_dados(const char* arquivo, char map[ALTURA_GRID][LARGURA_GRID + 1],
 
     memcpy(flechas, estado.flechas, sizeof(estado.flechas));
     *numFlechas = estado.numFlechas;
+
+    memcpy(bombas, estado.bombas, sizeof(estado.bombas));
+    *numBombas = estado.numBombas;
 
     *numInimigos = estado.numInimigos;
     *recursos = estado.recursos;
@@ -249,7 +262,6 @@ bool menu_inicial() {
         }
     }
 }
-
 
 bool menu_pause(bool* paused) {
     CarregaFont();
@@ -440,7 +452,7 @@ int podeMover(int xElemento, int yElemento, int dx, int dy)
     }
 
     // Verificar se a nova posição é uma parede ou barricada
-    if (map[newY - MAP_OFFSET][newX] == 'W' || map[newY - MAP_OFFSET][newX] == 'B' || map[newY - MAP_OFFSET][newX] == 'M')
+    if (map[newY - MAP_OFFSET][newX] == 'W')
     {
         return 0; // Não pode mover
     }
@@ -473,6 +485,56 @@ void entraBuraco(int *xPersonagem, int *yPersonagem, BURACO buracos[]) {
             *xPersonagem = buracos[i].coord.x;
             *yPersonagem = buracos[i].coord.y + MAP_OFFSET;
             break;
+        }
+    }
+}
+
+void cria_inimigo (int xSpawn, int ySpawn, INIMIGO array_inimigos[], int *numInimigos) {
+    array_inimigos[*numInimigos] = (INIMIGO) {
+        .coord = {xSpawn, ySpawn + MAP_OFFSET},
+        .ultimaDirecao = {0, 0},
+        .ultimoMovimento = GetTime(),
+        .vida = 3
+    };
+    (*numInimigos)++;
+
+    map[ySpawn + MAP_OFFSET][xSpawn] = 'M'; // Atualiza a posição no mapa
+
+    for (int mapY = 0; mapY < ALTURA_GRID; mapY++) {
+        for (int mapX = 0; mapX < LARGURA_GRID; mapX++) {
+            printf("%c", map[mapY][mapX]);
+        }
+        printf("\n");
+    }
+}
+
+void achaSpawnInimigos(ROUND info_rounds[MAX_ROUNDS]) {
+    int i;
+
+    int spawnX = info_rounds[0].spawn.x;
+    int spawnY = info_rounds[0].spawn.y;
+
+    if(map[spawnY + 1][spawnX] == '.') {
+        for(i = 0; i < MAX_ROUNDS; i++) {
+            info_rounds[i].spawn.y += 1;
+        }
+    }
+
+    else if(map[spawnY - 1][spawnX] == '.') {
+        for(i = 0; i < MAX_ROUNDS; i++) {
+            info_rounds[i].spawn.y -= 1;
+        }
+    }
+
+    else if(map[spawnY][spawnX + 1] == '.') {
+        for(i = 0; i < MAX_ROUNDS; i++) {
+            info_rounds[i].spawn.x += 1;
+        }
+    }
+
+    else {
+        for(i = 0; i < MAX_ROUNDS; i++) {
+            info_rounds[i].spawn.x -= 1;
         }
     }
 }
