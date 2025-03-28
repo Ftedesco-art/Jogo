@@ -1,1 +1,1 @@
-Projeto Concluído para a faculdade, jogo com especificações feito em C.
+Projeto Concluído para a faculdade (Realizado em dupla), jogo com especificações feito em C.
